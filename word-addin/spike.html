@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx: Word check (technical test)</title>
+    <!--
+      Diagnostics page, not a product feature. It opens in Word's task pane and uses a few
+      buttons to test, in real Word, the things that cannot be tested anywhere else:
+      whether squiggles land on the right characters, whether the popup and events work,
+      whether the pages on screen can be read, and how fast it all is.
+      Every button writes what it did and what came back to the log box, which can be copied whole.
+
+      office.js must be loaded from Microsoft's servers (their requirement); it cannot be self-hosted.
+    -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="addin.css" />
+  </head>
+  <body>
+    <h1>langfAIx technical test</h1>
+    <p class="hint">Press the buttons in order. Everything is written to the log at the bottom. When you are done, press Copy log and attach the log to your report.</p>
+
+    <section>
+      <h2>1. Where am I</h2>
+      <button id="environment">Environment</button>
+    </section>
+
+    <section>
+      <h2>2. One paragraph</h2>
+      <p class="hint">Put the cursor in a paragraph with mistakes, then press. Try several kinds: plain, with bold or a link, with an emoji, in a table, with a footnote mark, with tracked changes.</p>
+      <button id="check-paragraph">Check this paragraph</button>
+      <label class="inline"><input type="checkbox" id="replace-myself" /> When I pick a suggestion in Word's popup, let the add-in replace the text</label>
+      <p class="hint">First try with the box off: does Word replace the word by itself? Then turn it on and try again.</p>
+    </section>
+
+    <section>
+      <h2>3. Two colours</h2>
+      <p class="hint">Put the cursor in a paragraph of at least 6 words. A purple line goes under the whole paragraph, a red one under its second word.</p>
+      <button id="two-colours">Two colours</button>
+    </section>
+
+    <section>
+      <h2>4. Following the scrolling</h2>
+      <p class="hint">Start watching, then scroll through the document, slowly and fast, and also type a little. A line is logged each time the pages on screen change.</p>
+      <button id="watch-pages">Start watching pages</button>
+      <button id="check-visible">Check visible pages</button>
+    </section>
+
+    <section>
+      <h2>5. Clean up</h2>
+      <button id="clear">Clear all underlines</button>
+    </section>
+
+    <section>
+      <h2>Log</h2>
+      <div class="row">
+        <button id="copy-log" class="primary">Copy log</button>
+        <button id="clear-log">Empty the log</button>
+        <span id="copy-status" class="hint"></span>
+      </div>
+      <textarea id="log" rows="16" readonly spellcheck="false" aria-label="Log"></textarea>
+    </section>
+
+    <script type="module" src="spike.js"></script>
+  </body>
+</html>

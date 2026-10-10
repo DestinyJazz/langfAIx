@@ -1,0 +1,19 @@
+/* Injected into every page (content_scripts.css in manifest.json).
+   Two rules, one per highlight group. They only apply to rich-text areas
+   (contenteditable); content/editable.js registers the highlighted ranges.
+   Underlines in plain fields are drawn in an isolated Shadow DOM instead. */
+
+/* An issue found by the rule check: red squiggle */
+::highlight(langfaix-error) {
+  text-decoration: underline wavy #cf222e;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.15em;
+}
+
+/* The "could read better" hint: thin lavender dashes. Free; no AI is called */
+::highlight(langfaix-hint) {
+  text-decoration: underline dotted #8250df;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.2em;
+}

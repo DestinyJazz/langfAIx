@@ -1,0 +1,18 @@
+{
+  "name": "langfaix-e2e",
+  "private": true,
+  "description": "Browser tests for the extension. They drive a browser that is already installed on this PC, in headless mode with a temporary profile. Run 'npm install' once in this folder first.",
+  "type": "module",
+  "scripts": {
+    "extension": "node extension.mjs",
+    "overlay": "node overlay.mjs",
+    "sites": "node sites.mjs",
+    "admin": "node admin.mjs",
+    "popup": "node popup.mjs",
+    "packed": "node packed.mjs",
+    "addin": "node addin.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

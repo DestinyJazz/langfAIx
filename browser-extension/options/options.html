@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>langfAIx options</title>
+    <link rel="stylesheet" href="../ui.css" />
+    <style>
+      body {
+        max-width: 560px;
+      }
+      h2 {
+        margin: 28px 0 0;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+        font-size: 15px;
+      }
+      /* Dictionary words: small chips that wrap. With many words the list scrolls instead of stretching the page */
+      #dictList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-height: 220px;
+        margin: 8px 0 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+      }
+      #dictList li {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 4px 2px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--bg-soft);
+        overflow-wrap: anywhere;
+      }
+      #dictList button {
+        padding: 0 6px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      #dictList button:hover {
+        color: var(--error);
+      }
+      #dictImportBox {
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>langfAIx options</h1>
+
+    <!-- The form starts locked (disabled) and unlocks once the saved settings are filled in.
+         Otherwise text typed early would be overwritten by the settings read a moment later. -->
+    <fieldset id="form" disabled style="margin: 0; padding: 0; border: 0">
+    <label for="apiUrl">Server address</label>
+    <input id="apiUrl" type="url" placeholder="https://your-server.example.com/api" spellcheck="false" autocomplete="off" />
+    <p class="hint">The address of the langfAIx server, ending with /api. Ask your administrator.</p>
+
+    <label for="apiKey">API key</label>
+    <input id="apiKey" type="password" placeholder="sk-..." spellcheck="false" autocomplete="off" />
+    <p class="hint">
+      Only needed for AI improve. Grammar checking works without it. The key stays on this computer.
+      <label style="display: inline; font-weight: normal; margin: 0"><input id="showKey" type="checkbox" /> Show</label>
+    </p>
+
+    <label for="language">Language of the text you write</label>
+    <!-- options.js fills in the options from lib/languages.js, the list the Word add-in uses too. -->
+    <select id="language"></select>
+    <p class="hint">
+      Spelling and grammar are checked in this language, and AI improve answers in it. The purple hints and the team glossary were made for English.
+    </p>
+
+    <div class="row">
+      <button id="save" class="primary">Save</button>
+      <button id="test">Save and test connection</button>
+    </div>
+
+    <!-- The team glossary switch. Applies at once, without Save. -->
+    <label for="useGlossary" style="margin-top: 22px">Team glossary</label>
+    <label style="display: block; font-weight: normal; margin: 0">
+      <input id="useGlossary" type="checkbox" /> Use the team glossary when my text is checked
+    </label>
+    <p class="hint">
+      When on: terms from the glossary are not marked as spelling mistakes; wrong forms and Chinese terms left untranslated are underlined with the
+      standard English term as the suggestion; AI improve leaves the terms alone. Turn it off for writing that has nothing to do with the products.
+      This switch takes effect at once, and only for you. Looking up terms in the toolbar popup works either way.
+    </p>
+    <p class="hint"><a id="glossaryLink" target="_blank" hidden>Open the glossary page</a></p>
+    </fieldset>
+
+    <div id="status" class="status" role="status"></div>
+
+    <!-- Personal dictionary. Not part of the form above: changes apply at once, without Save. -->
+    <section id="dictionary">
+      <h2>Personal dictionary</h2>
+      <p class="hint">
+        Words in this list are no longer marked as spelling mistakes, on any website. You can also add a word from the card of a red underline:
+        Add to dictionary. A word in lower case covers every way of capitalizing it; a word with capitals must match exactly.
+      </p>
+      <p class="hint">
+        The list is stored on this computer only, in this browser. To keep a copy, or to move it to another browser, use Export and Import.
+      </p>
+
+      <div class="row">
+        <input id="dictWord" type="text" placeholder="Add a word" spellcheck="false" autocomplete="off" aria-label="Word to add" />
+        <button id="dictAdd">Add</button>
+      </div>
+      <div id="dictStatus" class="status" role="status"></div>
+
+      <p id="dictCount" class="hint"></p>
+      <ul id="dictList"></ul>
+
+      <div class="row">
+        <button id="dictExport">Export</button>
+        <button id="dictImportOpen">Import</button>
+      </div>
+      <div id="dictImportBox" hidden>
+        <label for="dictImportText">Words to import, one per line</label>
+        <textarea id="dictImportText" rows="5" spellcheck="false" placeholder="Paste words here, or choose a text file below"></textarea>
+        <p class="hint"><input id="dictImportFile" type="file" accept=".txt,text/plain" aria-label="Text file with one word per line" /></p>
+        <div class="row">
+          <button id="dictImportRun" class="primary">Import these words</button>
+          <button id="dictImportCancel">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="hint" style="margin-top: 24px">
+      <a href="../test/fields.html" target="_blank">Open the test page</a>: text boxes of different kinds, to see the underlines at work.
+    </p>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

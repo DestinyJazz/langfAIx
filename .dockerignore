@@ -1,0 +1,15 @@
+# Not needed to build the backend image from the repo root.
+.git
+.github
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/node_modules
+backend/tests
+word-addin/tests
+browser-extension/tests
+e2e
+deploy
+docs
+site

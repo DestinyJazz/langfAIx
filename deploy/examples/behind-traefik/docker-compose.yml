@@ -1,0 +1,234 @@
+# langfAIx stack for a server where a Traefik reverse proxy already owns ports 80 and 443.
+# Traefik terminates HTTPS and obtains the certificates (see traefik.yml next to this file);
+# Caddy sits behind it on plain HTTP and routes by host name.
+#
+# The file is written so that it can be pasted into Portainer's stack editor, which cannot
+# mount files by relative path. That is why the Caddyfile is inline (see the caddy service).
+#
+# There are no secrets in this file. Every ${...} value is an environment variable of the stack:
+#   POSTGRES_PASSWORD    database password; letters and digits only
+#   LITELLM_MASTER_KEY   LiteLLM admin key; must start with sk-
+#   LITELLM_SALT_KEY     encrypts the API keys LiteLLM stores; cannot be changed later
+#   OPENAI_API_KEY       the model provider's API key; this is the only place it exists
+#   LANGFAIX_DOMAIN      public host name, e.g. langfaix.example.com (no https://)
+#   LITELLM_DOMAIN       host name of the LiteLLM admin UI, e.g. langfaix-litellm.example.com (no https://)
+#   GLOSSARY_ADMINS      the initial glossary admins, comma separated: virtual key aliases, not secrets
+#
+# Prerequisites:
+#   - Traefik is on the Docker network called proxy and has a certificate resolver named le
+#   - the image langfaix-backend:dev exists on the host. Build it from the repo
+#     (docker build -t langfaix-backend:dev .) or from the archive made by
+#     deploy/pack-backend.ps1 (in Portainer: Images > Build a new image)
+
+services:
+  # The rule-based grammar checker (not AI).
+  languagetool:
+    # Pinned version, never latest, so a redeploy gets the same image.
+    image: erikvl87/languagetool:6.8
+    container_name: langfaix-languagetool
+    restart: unless-stopped
+    ports:
+      # host address:host port:container port. 127.0.0.1 means only the Docker host itself can
+      # reach it; LanguageTool is never exposed to the network.
+      - "127.0.0.1:8010:8010"
+    environment:
+      # Java heap, initial and maximum. Too small a maximum makes long texts slow or crashes the checker.
+      - Java_Xms=512m
+      - Java_Xmx=2g
+
+  # Database: LiteLLM's virtual keys and spend records, and (in its own database) the glossary.
+  postgres:
+    image: postgres:16
+    container_name: langfaix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # A named volume: the data survives recreating the container.
+      - langfaix-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d litellm -U litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No ports on purpose: only containers in this stack can reach the database.
+
+  # LLM gateway: holds the only provider key, issues virtual keys, records the cost of every call.
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.103.3
+    container_name: langfaix-litellm
+    restart: unless-stopped
+    depends_on:
+      # Start only once the database is healthy, or LiteLLM fails to connect.
+      postgres:
+        condition: service_healthy
+    # No ports on purpose. The admin UI (/ui) is reached at https://LITELLM_DOMAIN through
+    # Traefik and Caddy.
+    environment:
+      # The host name postgres is the service above; containers in one stack find each other by service name.
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY}
+      # The only provider key, kept in this container's environment. When adding a model in
+      # the LiteLLM admin UI, enter os.environ/OPENAI_API_KEY as the API key: the real key then
+      # never passes through a browser and is not stored in the database.
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Models are stored in the database and added in the admin UI; no config file to mount.
+      STORE_MODEL_IN_DB: "True"
+      # LiteLLM's public address. Behind a proxy it only sees internal http requests; without
+      # this, the redirect after sign-in points to a wrong http:// address.
+      PROXY_BASE_URL: https://${LITELLM_DOMAIN}
+    healthcheck:
+      # The liveness check from LiteLLM's own compose file.
+      test:
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # The langfAIx backend (FastAPI): all the logic; the front ends only talk to it.
+  backend:
+    # Our own image, present only on this host (see the prerequisites at the top).
+    image: langfaix-backend:dev
+    # never: do not look for this image in a registry; it is not there.
+    pull_policy: never
+    container_name: langfaix-backend
+    restart: unless-stopped
+    depends_on:
+      languagetool:
+        condition: service_healthy
+      # The glossary lives in Postgres. (If it is unreachable anyway, the backend still starts,
+      # rule checks work, and it keeps retrying.)
+      postgres:
+        condition: service_healthy
+    environment:
+      LANGUAGETOOL_URL: http://languagetool:8010
+      # The service is published under /api (see Caddy below); FastAPI needs to know for its docs page.
+      ROOT_PATH: /api
+      # ---- AI rewriting ----
+      LITELLM_URL: http://litellm:4000
+      # The model name: a fixed alias, not a real model name. In the LiteLLM admin UI, give
+      # the model exactly this Public Model Name and point it at any real model. Switching
+      # models is then done in LiteLLM alone, for everyone at once. Every virtual key must be
+      # allowed to use this alias, or calls fail with "model is not available for this API key".
+      AI_MODEL: langfAIx-model-1
+      # What your documents are about, and extra style preferences, for the AI prompt (empty
+      # keeps the built-in default). Set both as variables of the stack. The rules themselves
+      # live in backend/app/prompt.py.
+      AI_PROMPT_DOMAIN: ${AI_PROMPT_DOMAIN:-}
+      AI_PROMPT_EXTRA: ${AI_PROMPT_EXTRA:-}
+      # The backend's own LiteLLM admin key; here simply the master key. Two uses:
+      #   1. finding out whose virtual key a caller holds (for the glossary admin page)
+      #   2. reading model prices, to compute the cost of a rewrite
+      # Keys handed to users may only call models and can do neither, which is right. The
+      # backend only reads with this key; it never hands it out or logs it.
+      LITELLM_ADMIN_KEY: ${LITELLM_MASTER_KEY}
+      # ---- Team glossary ----
+      # A Chinese-English table kept in the database and edited at https://LANGFAIX_DOMAIN/api/admin/.
+      # There are no terms in this file.
+      #
+      # The same Postgres as above, but a database of its own (langfaix), apart from LiteLLM's
+      # tables. The backend creates it at startup if it does not exist.
+      # Format: driver://user:password@host:port/database.
+      DATABASE_URL: postgresql+psycopg://litellm:${POSTGRES_PASSWORD}@postgres:5432/langfaix
+      # The initial glossary admins, comma separated: aliases of LiteLLM virtual keys, not
+      # secrets. Empty: everyone is read-only. Later grants are made on the admin page.
+      # :- means empty when the variable is not set.
+      GLOSSARY_ADMINS: ${GLOSSARY_ADMINS:-}
+      # What the glossary is about (empty keeps the defaults: Chinese to English, the usual
+      # categories). Set them as variables of the stack.
+      GLOSSARY_SOURCE_LANGUAGE: ${GLOSSARY_SOURCE_LANGUAGE:-}
+      GLOSSARY_SOURCE_SCRIPT: ${GLOSSARY_SOURCE_SCRIPT:-}
+      GLOSSARY_CATEGORIES: ${GLOSSARY_CATEGORIES:-}
+    # No ports on purpose: only Caddy reaches it.
+
+  # Web server: the stack's single entry point.
+  # Requests travel: user -> Traefik (HTTPS, port 443) -> Caddy (HTTP, port 80 in the container).
+  caddy:
+    image: caddy:2.11.6-alpine
+    container_name: langfaix-caddy
+    restart: unless-stopped
+    # Startup: write the CADDYFILE variable below to a file, then start Caddy.
+    # Why this detour: Portainer cannot mount files by relative path, so the Caddyfile has to
+    # be in this YAML. As an environment variable, a change to it changes the service
+    # definition, so updating the stack recreates the container with the new content. (With
+    # compose `configs` + `content` the container is NOT recreated when only the content changes.)
+    # $$ is compose's way of writing one $, leaving $CADDYFILE for the container's shell.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        printf '%s' "$$CADDYFILE" > /etc/caddy/Caddyfile
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    environment:
+      CADDYFILE: |
+        {
+            # Traefik is in front. Trust X-Forwarded-* from private addresses, so services
+            # behind see the user's real IP and the original scheme (https).
+            servers {
+                trusted_proxies static private_ranges
+            }
+        }
+
+        # One block per site. http:// means plain HTTP here; HTTPS is done by Traefik.
+        # Caddy picks the block by the request's host name.
+
+        # Main host name: the backend under /api/.
+        http://${LANGFAIX_DOMAIN} {
+            # handle_path strips /api before forwarding: a request for /api/check
+            # reaches the backend as /check.
+            handle_path /api/* {
+                reverse_proxy backend:8000
+            }
+
+            # Everything else: a short text that shows the stack is up.
+            handle {
+                respond "langfAIx is up"
+            }
+        }
+
+        # LiteLLM host name: the admin UI (/ui) and its API, all to the litellm container.
+        http://${LITELLM_DOMAIN} {
+            reverse_proxy litellm:4000
+        }
+    networks:
+      # default: this stack's own network, to reach the internal services
+      # proxy: Traefik's network, through which requests come in
+      - default
+      - proxy
+    # No ports on purpose: only Traefik reaches Caddy.
+    labels:
+      # Labels read by Traefik, which builds its routing from them.
+      - "traefik.enable=true"
+      # Caddy is on two networks; Traefik must use proxy.
+      - "traefik.docker.network=proxy"
+      # Caddy listens on port 80 in the container. This Traefik service is named langfaix.
+      - "traefik.http.services.langfaix.loadbalancer.server.port=80"
+
+      # Router 1: the main host name.
+      - "traefik.http.routers.langfaix.rule=Host(`${LANGFAIX_DOMAIN}`)"
+      # HTTPS on port 443 (the websecure entry point) only.
+      - "traefik.http.routers.langfaix.entrypoints=websecure"
+      # The certificate resolver named le obtains the certificate for this host name.
+      - "traefik.http.routers.langfaix.tls.certresolver=le"
+      - "traefik.http.routers.langfaix.service=langfaix"
+
+      # Router 2: the LiteLLM admin UI's host name, also via Caddy. Each router gets its own certificate.
+      - "traefik.http.routers.langfaix-litellm.rule=Host(`${LITELLM_DOMAIN}`)"
+      - "traefik.http.routers.langfaix-litellm.entrypoints=websecure"
+      - "traefik.http.routers.langfaix-litellm.tls.certresolver=le"
+      - "traefik.http.routers.langfaix-litellm.service=langfaix"
+
+networks:
+  # Traefik's network. external: it exists already and is not created by this stack.
+  proxy:
+    external: true
+
+volumes:
+  langfaix-pgdata:
+    # An explicit name; otherwise Docker prefixes the stack name.
+    name: langfaix-pgdata

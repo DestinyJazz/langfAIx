@@ -1,0 +1,10 @@
+# Runtime dependencies. Versions are pinned so every environment installs the same ones.
+fastapi==0.142.2
+uvicorn==0.54.0
+httpx==0.28.1
+# Glossary storage: SQLAlchemy talks to the database, psycopg is the Postgres driver.
+# [binary] uses prebuilt wheels, so the image needs no compiler.
+SQLAlchemy==2.1.3
+psycopg[binary]==3.3.6
+# Read and write Excel files (glossary import and export).
+openpyxl==3.1.5

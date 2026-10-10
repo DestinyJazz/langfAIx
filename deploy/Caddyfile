@@ -1,0 +1,25 @@
+# Caddyfile of the standalone stack (docker-compose.yml in the repo root).
+#
+# LANGFAIX_SITE and LITELLM_SITE come from .env through the compose file:
+#   http://:80 and http://:4000          plain HTTP on any host name (the defaults; for trying it out)
+#   langfaix.example.com and so on       a real host name: Caddy obtains a certificate and serves HTTPS.
+#                                        The server must then be reachable from the internet on ports
+#                                        80 and 443. For a server on an internal network see docs/DEPLOY.md.
+
+{$LANGFAIX_SITE} {
+	# The backend lives under /api/. handle_path strips /api before forwarding:
+	# a request for /api/check reaches the backend as /check.
+	handle_path /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else: a short text that shows the stack is up.
+	handle {
+		respond "langfAIx is up"
+	}
+}
+
+# The LiteLLM admin UI (/ui) and its API.
+{$LITELLM_SITE} {
+	reverse_proxy litellm:4000
+}

@@ -1,0 +1,9 @@
+{
+  "name": "langfaix-browser-extension",
+  "private": true,
+  "description": "This file is only for the tests. Chrome ignores it. It tells Node.js that the .js files here are ES modules, the same way Chrome treats them.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

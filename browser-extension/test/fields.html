@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>langfAIx test page</title>
+    <!-- In web pages the browser injects this stylesheet. Extension pages get no injection, so it is linked here. -->
+    <link rel="stylesheet" href="../content/page.css" />
+    <style>
+      body {
+        max-width: 760px;
+        margin: 24px auto 80px;
+        padding: 0 16px;
+        font: 15px/1.5 system-ui, "Segoe UI", sans-serif;
+        color: #1f2328;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      h2 {
+        margin: 36px 0 4px;
+        padding-top: 12px;
+        border-top: 1px solid #d0d7de;
+        font-size: 17px;
+      }
+      h3 {
+        margin: 20px 0 6px;
+        font-size: 14px;
+      }
+      p.note {
+        margin: 0 0 8px;
+        color: #656d76;
+        font-size: 13px;
+      }
+      textarea,
+      input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      input {
+        margin-bottom: 6px;
+      }
+      #big {
+        font: 22px/1.8 Georgia, serif;
+        padding: 18px 26px;
+        border: 4px solid #8250df;
+        border-radius: 10px;
+        letter-spacing: 0.5px;
+      }
+      #mono {
+        font: 13px/1.4 Consolas, monospace;
+        white-space: pre;
+        overflow: auto;
+      }
+      #scrollbox {
+        height: 150px;
+        overflow: auto;
+        border: 1px solid #d0d7de;
+        padding: 12px;
+      }
+      #scrollbox .spacer {
+        height: 120px;
+      }
+      #input-tall {
+        height: 64px;
+        padding: 6px 20px 2px;
+        border: 3px solid #1a7f37;
+        border-radius: 8px;
+        font: 20px Georgia, serif;
+      }
+      #input-right {
+        text-align: right;
+      }
+      .editor {
+        min-height: 60px;
+        padding: 10px 12px;
+        border: 1px solid #8c959f;
+        border-radius: 6px;
+      }
+      .editor:focus {
+        outline: 2px solid #0969da;
+      }
+      .editor p {
+        margin: 0 0 8px;
+      }
+      #rich-mail {
+        font: 15px/1.6 Arial, sans-serif;
+      }
+      #rich-scroll {
+        height: 80px;
+        overflow: auto;
+      }
+      .chip {
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: #ddf4ff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>langfAIx test page</h1>
+    <p class="note">
+      Click into a box. After a short pause, mistakes should get a red wavy underline. Each box tests a different situation.
+      Sentences that AI could improve get a purple dotted line (see section D).
+    </p>
+
+    <h2>A. Multi-line text boxes (textarea)</h2>
+
+    <h3>A1. Plain text box</h3>
+    <textarea id="plain" rows="3">This are a test sentense. It have two more erors here.</textarea>
+
+    <h3>A2. Large font, thick border, big padding</h3>
+    <p class="note">The underlines must sit exactly under the wrong words, not shifted.</p>
+    <textarea id="big" rows="3">The server dont allow this trafic by default.</textarea>
+
+    <h3>A3. Long text that scrolls</h3>
+    <p class="note">Scroll inside the box. The underlines must move with the text and never show outside the box.</p>
+    <textarea id="long" rows="4">First line is fine.
+This are the second line with a mistake.
+Third line is fine.
+Fourth line is fine.
+Fifth line is fine.
+The sixth line has a mistaek too.
+Seventh line is fine.
+Eighth line contains a speling mistake.
+Ninth line is fine.
+Tenth line is the last one, and it are wrong.</textarea>
+
+    <h3>A4. No line wrapping (scrolls sideways)</h3>
+    <textarea id="mono" rows="3" wrap="off">This line is very long and it does not wrap, so the box scrolls sideways when you reach the end; the mistake is at the very end of the line: sentense.</textarea>
+
+    <h3>A5. Box inside a scrolling panel</h3>
+    <p class="note">Scroll the panel. The underlines must stay attached to the box.</p>
+    <div id="scrollbox">
+      <div class="spacer"></div>
+      <textarea id="inner" rows="3">This box is inside a panel that scrols.</textarea>
+      <div class="spacer"></div>
+    </div>
+
+    <h3>A6. Emoji before the mistake</h3>
+    <textarea id="emoji" rows="2">Great news 😀🎉 but this sentense has a mistake.</textarea>
+
+    <h3>A7. Spellcheck turned off by the page, normal font</h3>
+    <p class="note">Google Translate does this. It is still a place for sentences, so it IS checked.</p>
+    <textarea id="nospell-prose" rows="2" spellcheck="false" style="font: 16px Arial, sans-serif">The page turned spellcheck off, but this sentense is still checked.</textarea>
+
+    <h3>A8. Boxes that must NOT be checked</h3>
+    <p class="note">A code box (spellcheck off and a fixed-width font), a read-only box, a disabled box. No underline should ever appear.</p>
+    <textarea id="nospell" rows="2" spellcheck="false">const sentense = erors + mistaek; // code</textarea>
+    <br />
+    <textarea id="readonly" rows="2" readonly>This box is read-only: sentense, erors.</textarea>
+    <br />
+    <textarea id="disabled" rows="2" disabled>This box is disabled: sentense, erors.</textarea>
+
+    <h2>B. Single-line boxes (input)</h2>
+
+    <h3>B1. Plain single-line box, like an email subject</h3>
+    <input id="input-plain" name="subject" value="Printer on the secend floor dont work" />
+
+    <h3>B2. Tall box with a large font and uneven padding</h3>
+    <p class="note">The text is centred vertically. The underlines must still sit right under the words.</p>
+    <input id="input-tall" name="title" value="Meeting notes from tuesday abuot the rollout" />
+
+    <h3>B3. Text longer than the box</h3>
+    <p class="note">Press End to jump to the end. The underline must follow the text sideways.</p>
+    <input id="input-long" name="summary" style="width: 320px" value="The first part of this line is fine and then at the very end there is a mistaek" />
+
+    <h3>B4. Right-aligned text</h3>
+    <input id="input-right" name="headline" value="A short line with one erorr" />
+
+    <h3>B5. Only one word</h3>
+    <p class="note">A single word is not a sentence, so nothing is checked until you type a second word.</p>
+    <input id="input-oneword" name="note" value="Recieve" />
+
+    <h3>B6. Boxes that must NOT be checked</h3>
+    <p class="note">Password, email, search, name, card number, a code. No underline, and nothing is sent to the server.</p>
+    <input id="input-password" type="password" value="my sekret pasword" />
+    <input id="input-shown-password" type="text" name="password" value="my sekret pasword shown" />
+    <input id="input-email" type="email" value="somebody at exampel dot com" />
+    <input id="input-search" type="search" value="how to fix erors quickly" />
+    <input id="input-name" type="text" name="full_name" value="Jhon Smiht the third" />
+    <input id="input-card" type="text" autocomplete="cc-number" value="4111 1111 erors 1111" />
+    <input id="input-otp" type="text" inputmode="numeric" value="12 34 erors" />
+    <input id="input-searchbox" type="text" role="searchbox" value="search for erors here" />
+
+    <h2>C. Rich text editors (contenteditable)</h2>
+
+    <h3>C1. Simple editor</h3>
+    <div id="rich-plain" class="editor" contenteditable="true">This editor have a mistake and a speling eror.</div>
+
+    <h3>C2. Like an email: paragraphs, bold, italics, a link</h3>
+    <p class="note">The mistake "importent" is half bold. The underline must cover the whole word.</p>
+    <div id="rich-mail" class="editor" contenteditable="true"><p>Hi team,</p><p>Please review the <b>attached</b> documant before friday. It is very <b>impor</b>tent that <i>everyone</i> reads it.</p><p>See the <a href="https://example.com">release notes</a> for the detials.</p><p>Thanks</p></div>
+
+    <h3>C3. Lines separated by line breaks</h3>
+    <div id="rich-br" class="editor" contenteditable="true">First line is fine.<br />Second line has a mistaek.<br /><br />Fourth line are wrong.</div>
+
+    <h3>C4. A mention chip that cannot be edited</h3>
+    <div id="rich-chip" class="editor" contenteditable="true">Thanks <span class="chip" contenteditable="false">@Jhon Smiht</span> for the quick repsonse.</div>
+
+    <h3>C5. Editor that scrolls</h3>
+    <div id="rich-scroll" class="editor" contenteditable="true"><div>The first line is fine.</div><div>Nothing wrong with the second one.</div><div>We keep going on the third.</div><div>Here the fourth has a mistaek.</div><div>Then the fifth is fine again.</div><div>At the end there is anohter one.</div></div>
+
+    <h3>C6. A reply with the earlier email quoted below</h3>
+    <p class="note">Only your own text is checked. The quoted email is somebody else's writing and is left alone.</p>
+    <div id="rich-reply" class="editor" contenteditable="true"><div>Thanks, I will fix the confguration today.</div><div><br /></div><div class="gmail_quote"><div>On Monday, Alex wrote:</div><blockquote>Can you chekc the sistem? It dont work sinse yesterday.</blockquote></div></div>
+
+    <h3>C7. Spellcheck turned off by the page, normal font</h3>
+    <p class="note">TinyMCE and many other editors do this by default. It IS checked.</p>
+    <div id="rich-nospell-prose" class="editor" contenteditable="true" spellcheck="false">The editor turned spellcheck off, but this sentense is still checked.</div>
+
+    <h3>C8. Code editor that must NOT be checked</h3>
+    <p class="note">Spellcheck off and a fixed-width font: this is code.</p>
+    <div id="rich-nospell" class="editor" contenteditable="true" spellcheck="false" style="font: 13px Consolas, monospace">const sentense = erors + mistaek;</div>
+
+    <h2>D. Free "this sentence could read better" hints</h2>
+    <p class="note">
+      A purple dotted line means: AI could probably improve this sentence. Drawing the line is free and sends nothing to the AI.
+      Hover it and click Improve with AI to actually ask. Sentences with two or more red underlines (see A1) get the same line.
+    </p>
+
+    <h3>D1. A very long sentence without mistakes</h3>
+    <p class="note">The first sentence has more than 30 words, so it gets the purple line. The short second sentence does not.</p>
+    <textarea id="hint-long" rows="4">The upgrade package that was released last week contains several fixes for the routing module, and the team recommends that every customer installs it before the end of the month because older builds will stop receiving updates. It works well.</textarea>
+
+    <h3>D2. A wordy phrase</h3>
+    <p class="note">"reply back" says the same thing twice. That is a style issue, so the sentence gets the purple line.</p>
+    <textarea id="hint-style" rows="2">Please reply back to me when the new build is ready for testing. Thanks for the help.</textarea>
+
+    <h2>E. Team glossary</h2>
+    <p class="note">
+      Wrong forms registered in the team glossary, and Chinese terms left untranslated in English text, get the red line too.
+      The suggestion is the standard English term. This only happens for terms that are in the glossary on your server
+      (for this box: 策略 with the English term Policies, and WebUI with the wrong form "Web UI").
+    </p>
+    <textarea id="glossary" rows="2">Go to 策略 and open the Web UI to continue.</textarea>
+
+    <script type="module" src="fields.js"></script>
+  </body>
+</html>

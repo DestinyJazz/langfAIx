@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx Word 插件：安装说明</title>
+    <!--
+      Install guide for users of the Word add-in. A template, not the final file:
+      deploy/pack-word-addin.ps1 replaces the markers below and saves the result in deploy/build/.
+        {{VERSION}}  the add-in version (from the manifest)
+        {{ZIP}}      the file name of the zip handed out with this guide
+      Users install by running Install.cmd from the zip on their own computer (see deploy/install-word-addin.ps1).
+      The page references no external file and has no script: double-click to read it in a browser, or print it.
+      The guide text is Chinese with English UI names; an English version is still to be written.
+    -->
+    <style>
+      :root {
+        --ink: #1f2328;
+        --muted: #59636e;
+        --line: #d0d7de;
+        --accent: #6639ba;
+        --soft: #f6f8fa;
+        --warn-bg: #fff8c5;
+        --warn-line: #d4a72c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 28px 22px 48px;
+        background: #fff;
+        color: var(--ink);
+        font: 15px/1.65 "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 24px;
+      }
+      h1 span {
+        color: var(--accent);
+      }
+      .version {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      h2 {
+        margin: 26px 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--line);
+        font-size: 17px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      ul,
+      ol {
+        margin: 8px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 5px 0;
+      }
+      ol.steps > li {
+        margin: 10px 0;
+        padding-left: 4px;
+      }
+      ol.steps > li::marker {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      /* 要照着输入的东西：地址、文件夹、例句。点一下就整段选中，方便复制 */
+      code {
+        padding: 1px 6px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--soft);
+        font: 13.5px/1.5 Consolas, "Cascadia Mono", monospace;
+        user-select: all;
+        overflow-wrap: anywhere;
+      }
+      /* 浏览器和扩展界面上的按钮、标签的名字 */
+      .ui {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .warn {
+        margin: 8px 0;
+        padding: 8px 12px;
+        border: 1px solid var(--warn-line);
+        border-radius: 8px;
+        background: var(--warn-bg);
+      }
+      .fill {
+        margin: 6px 0;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+      }
+      .fill div {
+        margin: 3px 0;
+      }
+      table {
+        width: 100%;
+        margin: 8px 0;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: var(--soft);
+        font-size: 13px;
+      }
+      td:first-child {
+        width: 30%;
+        font-weight: 600;
+      }
+      .red {
+        text-decoration: underline wavy #cf222e;
+        text-underline-offset: 3px;
+      }
+      .purple {
+        text-decoration: underline dotted #8250df 2px;
+        text-underline-offset: 3px;
+      }
+      .dot {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #e5534b;
+        color: #fff;
+        font: 700 11px/18px "Segoe UI", sans-serif;
+        text-align: center;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      /* 打印出来是两页：第一页是安装，第二页是平时查的。 */
+      @media print {
+        body {
+          max-width: none;
+          padding: 0;
+          font-size: 11px;
+          line-height: 1.42;
+        }
+        code {
+          font-size: 10.5px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        h2 {
+          margin: 14px 0 5px;
+          font-size: 14px;
+          break-after: avoid;
+        }
+        th,
+        td {
+          padding: 4px 8px;
+        }
+        ol.steps > li {
+          margin: 6px 0;
+        }
+        .second-page {
+          break-before: page;
+          margin-top: 0;
+        }
+        li,
+        tr,
+        .warn,
+        .fill {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1><span>langfAIx</span> Word 插件：安装说明</h1>
+    <p class="version">版本 {{VERSION}} · Word 桌面版，Windows</p>
+
+    <p>
+      langfAIx 在 Word 里检查英文：拼写、语法和术语的问题会画上红色波浪线，旁边的侧边栏列出你正在看的这几页的问题。需要时可以让 AI
+      改写一句话或者一段话，还可以查团队的中英对照术语表。
+    </p>
+
+    <h2>开始之前</h2>
+    <ul>
+      <li><strong>Windows 上的 Microsoft 365 订阅版 Word</strong>。买断版（例如 Office 2021）用不了。版本 2502 或更新的会跟着你滚动的页面检查；旧一点的只检查光标所在的段落。</li>
+      <li>连着服务器所在的网络或者能连到它的 VPN，并且电脑能上外网（插件要从微软那里加载一个文件）。</li>
+      <li>
+        你自己的 API key，<code>sk-</code> 开头的一长串，和浏览器扩展用的是同一把。<span class="muted">没有 key 也能用拼写和语法检查，只是不能用 AI 改写，也不能查术语表。</span>
+      </li>
+    </ul>
+
+    <h2>安装（只做一次）</h2>
+    <p class="muted">装在你自己这台电脑上，只对你这个 Windows 账号生效。不需要管理员权限。</p>
+    <ol class="steps">
+      <li>
+        <strong>解压。</strong>在 <code>{{ZIP}}</code> 上按右键，选 <span class="ui">Extract All</span>（全部解压缩）。解压到哪里都行。
+      </li>
+      <li><strong>关掉所有 Word 窗口。</strong></li>
+      <li>
+        <strong>运行安装。</strong>在解压出来的文件夹里双击 <code>Install.cmd</code>。黑色的窗口里出现 <span class="ui">Installed langfAIx for Word</span>
+        就是装好了，按任意键关掉它。
+        <div class="warn">
+          Windows 可能先问你要不要运行这个文件：按 <span class="ui">Run</span>（运行）；如果是蓝色的提示，先点 <span class="ui">More info</span>（更多信息），再点
+          <span class="ui">Run anyway</span>（仍要运行）。
+        </div>
+      </li>
+      <li>
+        <strong>打开 Word。</strong><span class="ui">Home</span> 页签里会多一个 <span class="ui">Check text</span> 按钮，点它，旁边会打开侧边栏。
+        <span class="muted"
+          >没有这个按钮的话：点 <span class="ui">Home</span> &gt; <span class="ui">Add-ins</span> &gt; <span class="ui">More Add-ins</span>（有的版本是
+          <span class="ui">Advanced</span>），在 <span class="ui">Developer Add-ins</span> 下面点 langfAIx。</span
+        >
+      </li>
+      <li>
+        <strong>填 key。</strong>点侧边栏最下面的 <span class="ui">Settings</span>，在 <span class="ui">API key</span> 里贴上你的 key，按 <span class="ui">Save</span>。不用填服务器地址。
+      </li>
+    </ol>
+
+    <h2 class="second-page">怎么用</h2>
+    <p>侧边栏开着它才工作。打开之后什么都不用按：滚到哪一页，那一页就会被检查。</p>
+    <table>
+      <tr>
+        <th>你看到的</th>
+        <th>是什么，怎么用</th>
+      </tr>
+      <tr>
+        <td><span class="red">红色波浪线</span></td>
+        <td>拼写、语法或者术语的问题。鼠标停上去，Word 会弹出最多 3 个建议，点一个就换；点忽略就不再标它。</td>
+      </tr>
+      <tr>
+        <td>侧边栏里的卡片</td>
+        <td>
+          同一处问题的说明和全部建议。点建议就改；<span class="ui">Dismiss</span> 是不理它；<span class="ui">Add to dictionary</span> 是"这个词我认识，以后别再标"；点卡片的空白处，文档会跳到那一处。
+        </td>
+      </tr>
+      <tr>
+        <td><span class="purple">淡紫色的线</span>，和 Could read better 的卡片</td>
+        <td>这句话也许可以写得更好。这个提示本身不调用 AI。点卡片上的 <span class="ui">Improve with AI</span> 才会把这一句交给 AI。不喜欢这种线可以在 Settings 里关掉。</td>
+      </tr>
+      <tr>
+        <td><span class="ui">Improve with AI</span> 按钮</td>
+        <td>
+          先把光标放在一句话里，或者选中一段文字，再点它。它会列出可以改哪几段，选了才会送出去。结果里删掉的字标红、新加的标蓝，下面写着花了多少。点
+          <span class="ui">Accept</span> 才会改到文档里，改错了按 Ctrl+Z。
+        </td>
+      </tr>
+      <tr>
+        <td>查术语的输入框</td>
+        <td>输入中文或英文都行。点一个术语就复制，点 <span class="ui">Insert</span> 直接放到光标处。</td>
+      </tr>
+      <tr>
+        <td><span class="ui">Pause</span></td>
+        <td>暂时不检查新的页面，要用时再点 <span class="ui">Resume</span>。</td>
+      </tr>
+    </table>
+
+    <h2>你写的字会去哪里</h2>
+    <ul>
+      <li><strong>拼写和语法检查是自动的。</strong>你滚到的页面上的文字会送到你们团队自己的服务器去检查，不经过任何外部的服务。没滚到的页面不会送。</li>
+      <li><strong>AI 只在你点了并且选了要改哪一段之后才运行</strong>，只送那一段。这一部分会通过团队的账号送到 AI 服务商（例如 OpenAI），花费记在你的 key 名下。</li>
+      <li>服务器不保存你检查的文字，也不写进日志。这是程序的设计，不是技术上的保证：能管理服务器的人，理论上可以改程序去记录。</li>
+      <li>波浪线不会存进文档，别人打开你的文档看不到它们。key 和个人词典只存在你这台电脑上。</li>
+    </ul>
+
+    <h2>碰到问题</h2>
+    <table>
+      <tr>
+        <th>情况</th>
+        <th>先看这几样</th>
+      </tr>
+      <tr>
+        <td>Word 里找不到 <span class="ui">Check text</span></td>
+        <td>
+          先照安装第 4 步到 <span class="ui">Developer Add-ins</span> 下面找。还是没有：关掉所有 Word 窗口，再双击一次 <code>Install.cmd</code>，然后打开 Word。
+        </td>
+      </tr>
+      <tr>
+        <td><code>Install.cmd</code> 运行不了，或者窗口里是红色的字</td>
+        <td>把窗口里的字拍下来，发给给你这份说明的人。有的受管理的电脑不允许运行这类文件。</td>
+      </tr>
+      <tr>
+        <td>侧边栏是空白的，或者一直在转</td>
+        <td>连着服务器所在的网络或 VPN 吗？电脑能上外网吗？关掉侧边栏再点一次 <span class="ui">Check text</span>。</td>
+      </tr>
+      <tr>
+        <td>顶上写着 <span class="ui">Cannot reach the server</span></td>
+        <td>到服务器的网络或 VPN 断了。连上之后它会自己恢复，不用重开。</td>
+      </tr>
+      <tr>
+        <td>有的错没有被标出来</td>
+        <td>规则检查不是什么都抓得到。把光标放在那句话里，用 <span class="ui">Improve with AI</span> 让 AI 看一眼。</td>
+      </tr>
+      <tr>
+        <td>AI 说 key 没填或者被拒绝</td>
+        <td>到 Settings 里检查 key 有没有贴全。还是不行就找给你 key 的人。</td>
+      </tr>
+    </table>
+    <p class="muted">
+      以后有新版本时一般不用做什么，关掉 Word 再打开就是新的。只有收到新的压缩包时，才需要解压并再双击一次 <code>Install.cmd</code>。不想用了就双击
+      <code>Uninstall.cmd</code>。安装之后，解压出来的文件夹可以删掉。
+    </p>
+  </body>
+</html>

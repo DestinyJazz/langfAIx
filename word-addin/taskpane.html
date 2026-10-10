@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx</title>
+    <!--
+      The Word add-in's task pane. It starts working as soon as it opens: about once a
+      second it looks at the pages on screen, sends unchecked paragraphs for a check, draws
+      red lines and lists the issues of those pages below.
+      An AI rewrite only runs after the user clicked Improve with AI and picked a range.
+      The UI is English, like the browser extension.
+
+      office.js must be loaded from Microsoft's servers (their requirement); it cannot be self-hosted.
+    -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="addin.css" />
+  </head>
+  <body class="pane">
+    <header class="top">
+      <div class="title">
+        <span class="brand">langfAIx</span>
+        <button id="pause" class="small" disabled>Pause</button>
+      </div>
+      <!-- Current status: checking, number of issues on these pages, server unreachable... -->
+      <div id="status" class="status" role="status">Starting...</div>
+      <div id="where" class="hint"></div>
+      <!-- Entry to AI rewriting. It first lists the ranges; text is only sent once one is picked. -->
+      <button id="ai-open" class="ai-open" disabled title="Improve the sentence at the cursor, the selected text, or the paragraph">Improve with AI</button>
+      <!-- Term lookup: Chinese or English. Asks the team glossary only; no AI. -->
+      <input id="term" class="term" type="text" placeholder="Look up a term: Chinese or English" spellcheck="false" autocomplete="off" aria-label="Look up a term in the team glossary" disabled />
+    </header>
+
+    <!-- The issues of the pages on screen. Follows the scrolling. -->
+    <main>
+      <!-- AI rewriting: choices, waiting and result all show here. Normally collapsed. -->
+      <!-- Lookup results -->
+      <section id="lookup" class="lookup" aria-label="Glossary lookup" hidden></section>
+
+      <section id="ai" class="ai-card" aria-label="AI improve" hidden></section>
+
+      <ol id="issues" class="issues" aria-label="Issues on the pages you are looking at"></ol>
+      <p id="empty" class="empty" hidden></p>
+
+      <!-- Settings. Collapsed until Settings in the footer is clicked. -->
+      <section id="settings" class="settings" hidden>
+        <h2>Settings</h2>
+        <label for="api-key">API key</label>
+        <input id="api-key" type="password" placeholder="sk-..." spellcheck="false" autocomplete="off" />
+        <label class="inline"><input id="show-key" type="checkbox" /> Show</label>
+        <p class="hint">Only needed for AI improve. Grammar checking works without it. The key stays on this computer.</p>
+        <div class="row">
+          <button id="save-key" class="primary">Save</button>
+          <button id="settings-close">Close</button>
+        </div>
+        <label for="language">Language of the text you write</label>
+        <!-- taskpane.js fills in the options from the browser extension's lib/languages.js: one list for both. -->
+        <select id="language"></select>
+        <p class="hint">Spelling and grammar are checked in this language, and AI improve answers in it. The purple hints and the team glossary were made for English.</p>
+        <label class="inline"><input id="use-glossary" type="checkbox" /> Use the team glossary when my text is checked</label>
+        <label class="inline"><input id="hint-lines" type="checkbox" /> Underline sentences that could read better (purple)</label>
+        <label class="inline"><input id="follow-cursor" type="checkbox" /> Follow the cursor instead of the scrolling</label>
+        <p class="hint">
+          Normally langfAIx checks the pages you can see. When it follows the cursor, it checks the paragraph the cursor is in. Older versions of Word can only
+          do that.
+        </p>
+        <div id="settings-status" class="hint" role="status"></div>
+
+        <!-- Personal dictionary: an editable text box. Delete a line to remove a word, add a line to add one, paste to import, copy to export. -->
+        <h2>Personal dictionary</h2>
+        <p class="hint">
+          Words listed here are not marked as spelling mistakes. One word per line. A word in lower case covers every way of capitalizing it; a word with capitals must match exactly.
+        </p>
+        <textarea id="dict-words" rows="6" spellcheck="false" aria-label="Words in your personal dictionary, one per line"></textarea>
+        <div class="row">
+          <button id="dict-save" class="primary">Save list</button>
+          <span id="dict-status" class="hint" role="status"></span>
+        </div>
+        <p class="hint">
+          The list is stored on this computer only, separately from the browser extension. To use the same words in both, copy the list from one and paste it into the other.
+        </p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="hint">Underlines follow the pages on screen. They are not saved in the document.</span>
+      <span class="links">
+        <button id="settings-open" class="link">Settings</button>
+        <a href="spike.html" class="hint" title="A page of test buttons, for finding out why something does not work">Diagnostics</a>
+      </span>
+    </footer>
+
+    <script type="module" src="taskpane.js"></script>
+  </body>
+</html>

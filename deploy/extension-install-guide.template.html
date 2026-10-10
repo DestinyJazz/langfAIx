@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx 浏览器扩展：安装说明</title>
+    <!--
+      Install guide for users of the browser extension. A template, not the final file:
+      deploy/pack-extension.ps1 replaces the markers below and saves the result in
+      deploy/build/, to be handed out together with the zip.
+        {{VERSION}}    the extension version, from browser-extension/manifest.json
+        {{API_URL}}    the server address, given when the pack script runs
+        {{ADMIN_URL}}  the glossary page: the server address plus /admin/
+        {{API_HOST}}   the server's host name (no https://, no path), which users add to the "specific sites" list
+      The server address belongs to a deployment, so it is not in this file.
+      The page references no external file and has no script: double-click to read it in a browser, or print it.
+      The guide text is Chinese with English UI names; an English version is still to be written.
+    -->
+    <style>
+      :root {
+        --ink: #1f2328;
+        --muted: #59636e;
+        --line: #d0d7de;
+        --accent: #6639ba;
+        --soft: #f6f8fa;
+        --warn-bg: #fff8c5;
+        --warn-line: #d4a72c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 28px 22px 48px;
+        background: #fff;
+        color: var(--ink);
+        font: 15px/1.65 "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 24px;
+      }
+      h1 span {
+        color: var(--accent);
+      }
+      .version {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      h2 {
+        margin: 26px 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--line);
+        font-size: 17px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      ul,
+      ol {
+        margin: 8px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 5px 0;
+      }
+      ol.steps > li {
+        margin: 10px 0;
+        padding-left: 4px;
+      }
+      ol.steps > li::marker {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      /* 要照着输入的东西：地址、文件夹、例句。点一下就整段选中，方便复制 */
+      code {
+        padding: 1px 6px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--soft);
+        font: 13.5px/1.5 Consolas, "Cascadia Mono", monospace;
+        user-select: all;
+        overflow-wrap: anywhere;
+      }
+      /* 浏览器和扩展界面上的按钮、标签的名字 */
+      .ui {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .warn {
+        margin: 8px 0;
+        padding: 8px 12px;
+        border: 1px solid var(--warn-line);
+        border-radius: 8px;
+        background: var(--warn-bg);
+      }
+      .fill {
+        margin: 6px 0;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+      }
+      .fill div {
+        margin: 3px 0;
+      }
+      table {
+        width: 100%;
+        margin: 8px 0;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: var(--soft);
+        font-size: 13px;
+      }
+      td:first-child {
+        width: 30%;
+        font-weight: 600;
+      }
+      .red {
+        text-decoration: underline wavy #cf222e;
+        text-underline-offset: 3px;
+      }
+      .purple {
+        text-decoration: underline dotted #8250df 2px;
+        text-underline-offset: 3px;
+      }
+      .dot {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #e5534b;
+        color: #fff;
+        font: 700 11px/18px "Segoe UI", sans-serif;
+        text-align: center;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      /* 打印出来是两页：第一页是安装，第二页是平时查的。 */
+      @media print {
+        body {
+          max-width: none;
+          padding: 0;
+          font-size: 11px;
+          line-height: 1.42;
+        }
+        code {
+          font-size: 10.5px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        h2 {
+          margin: 14px 0 5px;
+          font-size: 14px;
+          break-after: avoid;
+        }
+        th,
+        td {
+          padding: 4px 8px;
+        }
+        ol.steps > li {
+          margin: 6px 0;
+        }
+        .second-page {
+          break-before: page;
+          margin-top: 0;
+        }
+        li,
+        tr,
+        .warn,
+        .fill {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1><span>langfAIx</span> 浏览器扩展：安装说明</h1>
+    <p class="version">扩展版本 {{VERSION}}</p>
+
+    <p>
+      langfAIx 在网页的输入框里检查英文：拼写、语法和术语的问题会画上红色波浪线，点一下就能改。需要时可以让 AI
+      改写一句话，还可以查团队的中英对照术语表。
+    </p>
+
+    <h2>开始之前，准备好三样东西</h2>
+    <ul>
+      <li>Chrome 或 Edge 浏览器（平时自动更新的版本就可以）。</li>
+      <li>连着服务器所在的网络，或者能连到它的 VPN。服务器只在内部网络里。</li>
+      <li>
+        你自己的 API key，是 <code>sk-</code> 开头的一长串。向给你这份说明的人要。每人一把，不要借给别人，也不要发到群里。<br />
+        <span class="muted">没有 key 也能用拼写和语法检查，只是不能用 AI 改写，也不能查术语表。</span>
+      </li>
+    </ul>
+
+    <h2>安装（大约 3 分钟）</h2>
+    <ol class="steps">
+      <li>
+        <strong>解压。</strong>右键 <code>langfaix-extension-{{VERSION}}.zip</code>，选 <span class="ui">全部解压缩 (Extract All)</span>，位置填
+        <code>C:\langfAIx-extension</code>，再按 <span class="ui">提取 (Extract)</span>。
+        <div class="warn">
+          这个文件夹以后<strong>不能删，也不能挪地方</strong>，否则扩展会从浏览器里消失。所以不要解压在"下载"文件夹里。电脑不让在 C 盘建文件夹的话，换一个你不会去动的位置，并记住它。
+        </div>
+      </li>
+      <li>
+        <strong>打开扩展页面。</strong>在浏览器的地址栏输入 <code>chrome://extensions</code>（Edge 是 <code>edge://extensions</code>），按回车。
+      </li>
+      <li>
+        <strong>打开 <span class="ui">Developer mode</span>。</strong>中文界面叫"开发者模式"或"开发人员模式"。Chrome 的开关在页面右上角，Edge 的在左边那一栏。
+      </li>
+      <li>
+        <strong>按 <span class="ui">Load unpacked</span>。</strong>中文界面叫"加载已解压的扩展程序"或"加载解压缩的扩展"。选刚才的文件夹
+        <code>C:\langfAIx-extension</code>，也就是打开后直接能看到 <code>manifest.json</code> 的那一层。
+      </li>
+      <li>
+        <strong>填设置。</strong>设置页会自己打开，填这两栏：
+        <div class="fill">
+          <div><span class="ui">Server address</span>：<code>{{API_URL}}</code></div>
+          <div><span class="ui">API key</span>：贴上你的 key</div>
+        </div>
+        然后按 <span class="ui">Save and test connection</span>。下面出现 <span class="ui">Connected</span> 就装好了。
+      </li>
+      <li>
+        <strong>把图标放到工具栏上（建议）。</strong>点地址栏右边的拼图图标，在 langfAIx 那一行点图钉（Edge 是眼睛图标）。
+      </li>
+    </ol>
+
+    <h2>试一下</h2>
+    <ul>
+      <li>安装之前就开着的网页，先<strong>刷新一次</strong>，扩展才会在里面起作用。</li>
+      <li>
+        在任意网页的输入框里输入 <code>This are a test sentense.</code>，停一秒，出错的地方会出现红色波浪线。把鼠标停在线上，点建议就替换。
+      </li>
+      <li>或者在设置页最下面点 <span class="ui">Open the test page</span>，那里有各种输入框可以试。</li>
+    </ul>
+
+    <h2 class="second-page">怎么用</h2>
+    <table>
+      <tr>
+        <th>你看到的</th>
+        <th>是什么，怎么用</th>
+      </tr>
+      <tr>
+        <td><span class="red">红色波浪线</span></td>
+        <td>拼写、语法或者术语的问题。鼠标停上去看建议，点一下替换。改错了按 Ctrl+Z 撤销。不想理它就点 <span class="ui">Dismiss</span>；是你认识的词（人名、产品名），点 <span class="ui">Add to dictionary</span>，以后在哪里都不再报。</td>
+      </tr>
+      <tr>
+        <td><span class="purple">淡紫色虚线</span></td>
+        <td>这句话也许可以写得更好。这个提示本身不调用 AI。鼠标停上去，点了 <span class="ui">Improve with AI</span> 才会把这一句交给 AI。</td>
+      </tr>
+      <tr>
+        <td>输入框右下角的小圆标 <span class="dot">3</span></td>
+        <td>
+          数字是问题的个数，绿色对勾是没有问题。点开之后可以：查术语（输入中文或英文都行，点结果就复制）；让 AI 改光标所在的那一句、选中的文字或者全部文字；开关团队术语表
+          (<span class="ui">Use the team glossary</span>)。
+        </td>
+      </tr>
+      <tr>
+        <td>工具栏上的 langfAIx 图标</td>
+        <td><span class="ui">Glossary</span> 页签查术语，<span class="ui">Quick check</span> 页签可以贴一段文字进去检查。</td>
+      </tr>
+    </table>
+
+    <h2>你打的字会去哪里</h2>
+    <ul>
+      <li><strong>拼写和语法检查是自动的。</strong>输入框里的文字会送到你们团队自己的服务器去检查，不经过任何外部的服务。</li>
+      <li>密码、姓名、邮箱、电话、地址、搜索框这一类输入框不检查。这是程序按输入框的样子来判断的，不保证每一个都认得出来。</li>
+      <li>
+        <strong>AI 只在你点了之后才运行</strong>，而且只送你点的那一句或那一段。这一部分会通过团队的账号送到 AI 服务商（例如 OpenAI）。每次用完，卡片上会显示花了多少，记在你的 key 名下。
+      </li>
+      <li>
+        <strong>服务器不保存你检查的文字，也不写进日志。</strong>这是程序的设计，不是技术上的保证：能管理服务器的人，理论上可以改程序去记录。所以如果你不放心，请用下面的办法只在你选的网站上使用。
+      </li>
+    </ul>
+
+    <h2>只在你选的网站上使用（建议）</h2>
+    <p>默认它在所有网站的输入框里都会检查。你可以让浏览器只在指定的网站上运行它：</p>
+    <ol>
+      <li>在扩展页面，按 langfAIx 卡片上的 <span class="ui">Details</span>（详细信息）。</li>
+      <li>
+        找到 <span class="ui">Site access</span>（网站访问权限），选 <span class="ui">On specific sites</span>（在特定网站上），按 <span class="ui">Add</span>，一个一个加上你要用的网站。
+      </li>
+      <li>
+        <strong>再加上服务器的网站</strong> <code>{{API_HOST}}</code>。不加的话，扩展连不上服务器，设置页的测试会失败。
+      </li>
+    </ol>
+
+    <h2>以后更新</h2>
+    <p>收到新的压缩包时：</p>
+    <ol>
+      <li>解压到<strong>同一个文件夹</strong> <code>C:\langfAIx-extension</code>，问要不要替换时选替换。</li>
+      <li>在扩展页面，按 langfAIx 那张卡片上的刷新按钮（圆形的箭头）。</li>
+      <li>把开着的网页刷新一次。</li>
+    </ol>
+    <p class="muted">地址、key 和个人词典会保留。换了文件夹再加载，浏览器会当成另一个扩展，这些都要重来；个人词典可以先在设置页按 Export 存一份。</p>
+
+    <h2>碰到问题</h2>
+    <table>
+      <tr>
+        <th>情况</th>
+        <th>先看这几样</th>
+      </tr>
+      <tr>
+        <td>打了错字却没有红线</td>
+        <td>
+          这个网页在安装或更新之后刷新过吗？连着服务器所在的网络或 VPN 吗？在设置页按 <span class="ui">Save and test connection</span> 是不是 Connected？<br />
+          另外有些地方是故意不检查的：上面说的密码、姓名、搜索那一类；只填一个词的单行输入框；写代码的地方。Google Docs 目前不支持。
+        </td>
+      </tr>
+      <tr>
+        <td>浏览器提醒你关闭"开发者模式的扩展"</td>
+        <td>有的浏览器启动时会这样提醒。把提醒关掉就行，不要选停用。</td>
+      </tr>
+      <tr>
+        <td>AI 卡片显示 <span class="ui">API key</span> 或 <span class="ui">model is not available</span></td>
+        <td>到设置页检查 key 有没有贴全、前后有没有多出空格。还是不行，或者这把 key 还没有开通模型，就找给你 key 的人。</td>
+      </tr>
+      <tr>
+        <td>扩展从浏览器里不见了</td>
+        <td>多半是文件夹被删了或者挪了。照"安装"重新做一遍。</td>
+      </tr>
+    </table>
+
+    <h2>术语表页面</h2>
+    <p>
+      想看整张术语表或者维护它，打开 <code>{{ADMIN_URL}}</code>。第一次用 API key 登录，页面会请你设名字和密码，以后用它们登录。要修改术语，需要管理员先把你设成 editor。
+    </p>
+  </body>
+</html>

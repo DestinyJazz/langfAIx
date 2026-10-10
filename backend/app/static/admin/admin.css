@@ -1,0 +1,445 @@
+/* Styles of the glossary admin page. Same palette as the extension's cards. */
+
+:root {
+  --text: #1f2328;
+  --muted: #656d76;
+  --line: #d0d7de;
+  --soft: #f6f8fa;
+  --brand: #6639ba;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --amber: #9a6700;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: #ffffff;
+  /* Chinese fonts are listed too: half of the glossary is Chinese */
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+/* hidden always wins, whatever display rules follow */
+[hidden] {
+  display: none !important;
+}
+
+h1 {
+  margin: 0;
+  color: var(--brand);
+  font-size: 17px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+/* ---------- Top bar ---------- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft);
+}
+
+#tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: #eaeef2;
+}
+
+.tab.current {
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+#who {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #eaeef2;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip.new,
+.chip.admin {
+  background: #dafbe1;
+  color: var(--green);
+}
+
+.chip.update,
+.chip.editor {
+  background: #ddf4ff;
+  color: #0969da;
+}
+
+.chip.error {
+  background: #ffebe9;
+  color: var(--red);
+}
+
+.chip.skip {
+  background: #fff8c5;
+  color: var(--amber);
+}
+
+/* ---------- Content ---------- */
+
+main {
+  padding: 20px;
+}
+
+.card {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.narrow {
+  max-width: 440px;
+  margin: 48px auto;
+}
+
+.hint,
+.muted {
+  color: var(--muted);
+}
+
+.hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #d4a72c66;
+  border-radius: 6px;
+  background: #fff8c5;
+  font-size: 13px;
+}
+
+.status {
+  min-height: 1.5em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status.error {
+  color: var(--red);
+}
+
+.status.ok {
+  color: var(--green);
+}
+
+label,
+.label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+label.inline {
+  display: block;
+  margin: 2px 0;
+  font-weight: 400;
+}
+
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+select,
+textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #8c959f;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--soft);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #eaeef2;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #5a32a3;
+}
+
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+button.danger {
+  color: var(--red);
+}
+
+#login-form button {
+  margin-top: 12px;
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.toolbar #search {
+  width: 280px;
+}
+
+.toolbar select {
+  width: auto;
+  max-width: 200px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------- Table ---------- */
+
+.table-wrap {
+  margin-top: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #eaeef2;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+td.en {
+  font-weight: 600;
+}
+
+/* Wrong forms: struck through in red, clearly not to be used */
+td .wrong {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--red);
+  text-decoration: line-through;
+}
+
+td.small,
+td.note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+td.note {
+  max-width: 260px;
+  white-space: pre-wrap;
+}
+
+td.actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+td.actions button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+td.empty {
+  padding: 28px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.messages {
+  margin-top: 2px;
+  color: var(--red);
+  font-size: 12px;
+}
+
+tr.skip .messages {
+  color: var(--amber);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ---------- Import ---------- */
+
+.row {
+  margin-bottom: 8px;
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+details {
+  margin-bottom: 8px;
+}
+
+summary {
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mapping {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.mapping label {
+  margin: 0 0 2px;
+}
+
+#import-confirm {
+  margin-top: 12px;
+}
+
+/* ---------- Dialogs ---------- */
+
+dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(31, 35, 40, 0.3);
+}
+
+dialog::backdrop {
+  background: rgba(31, 35, 40, 0.4);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ---------- Sign-in: name and password, or virtual key ---------- */
+
+/* The "Keep me signed in" row, set apart from the inputs above */
+label.keep {
+  margin: 10px 0 12px;
+}
+
+/* The small line at the bottom of the form: switch to the other sign-in */
+.other-way {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#password-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+/* A glossary without a source language: hide the source column and its dialog field */
+body.no-source .zh {
+  display: none;
+}

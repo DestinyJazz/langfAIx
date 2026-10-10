@@ -1,0 +1,9 @@
+{
+  "name": "langfaix-word-addin",
+  "private": true,
+  "description": "This file is only for the tests. Word ignores it. It tells Node.js that the .js files here are ES modules, the same way the browser treats them.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

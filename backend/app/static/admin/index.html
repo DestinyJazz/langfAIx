@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx glossary</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <!--
+      Glossary admin page. Plain HTML and JavaScript, no build step, served by the backend.
+      The page holds no data: after sign-in it asks the backend's /glossary/ endpoints.
+      The UI is English (like the browser extension); the terms are Chinese where they are Chinese.
+    -->
+    <header class="bar">
+      <h1>langfAIx glossary</h1>
+      <nav id="tabs" hidden>
+        <button type="button" class="tab" data-view="terms">Terms</button>
+        <button type="button" class="tab" data-view="import" data-needs="editor">Import</button>
+        <button type="button" class="tab" data-view="history">History</button>
+        <button type="button" class="tab" data-view="people" data-needs="admin">People</button>
+      </nav>
+      <div id="who" hidden>
+        <span id="who-name"></span>
+        <span id="who-role" class="chip"></span>
+        <button type="button" id="open-password" class="link" hidden>Set a password</button>
+        <button type="button" id="sign-out" class="link">Sign out</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Sign-in -->
+      <section id="view-login" class="card narrow">
+        <h2>Sign in</h2>
+
+        <!-- Usual: name and password. Shown first once someone on this computer has set a password -->
+        <form id="password-form" hidden>
+          <label for="login-name">Name</label>
+          <input id="login-name" autocomplete="username" spellcheck="false" required />
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+          <label class="inline keep"><input type="checkbox" id="login-keep" checked /> Keep me signed in on this computer</label>
+          <button type="submit" class="primary">Sign in</button>
+          <p class="other-way">First time here, or forgot your password? <button type="button" id="use-key" class="link">Sign in with your API key</button></p>
+        </form>
+
+        <!-- First visit or forgotten password: the virtual key. The page then asks for a name and password -->
+        <form id="login-form">
+          <p class="hint">
+            The first time, sign in with your LiteLLM virtual key, the same one you put in the browser extension. You then choose a name and a password, so you will not need the key here again.
+          </p>
+          <label for="key">API key</label>
+          <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..." required />
+          <button type="submit" class="primary">Continue</button>
+          <p class="other-way">Already chose a name and a password? <button type="button" id="use-password" class="link">Sign in with them</button></p>
+        </form>
+        <p id="login-status" class="status" role="status"></p>
+      </section>
+
+      <!-- Term table -->
+      <section id="view-terms" hidden>
+        <p id="viewer-note" class="notice" hidden></p>
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="Search Chinese or English" autocomplete="off" />
+          <select id="filter-category" aria-label="Category"></select>
+          <select id="filter-applies" aria-label="Applies to"></select>
+          <span id="count" class="muted"></span>
+          <span class="spacer"></span>
+          <button type="button" id="add-term" class="primary" data-needs="editor">Add term</button>
+          <button type="button" id="export-xlsx">Export Excel</button>
+          <button type="button" id="export-csv">Export CSV</button>
+        </div>
+        <p id="terms-status" class="status" role="status"></p>
+        <div class="table-wrap">
+          <table id="terms-table">
+            <thead>
+              <tr>
+                <th class="zh source-label">Chinese</th>
+                <th>English</th>
+                <th>Category</th>
+                <th>Applies to</th>
+                <th>Wrong forms</th>
+                <th>Note</th>
+                <th>Last change</th>
+                <th data-needs="editor"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button type="button" id="page-prev">Previous</button>
+          <span id="page-label" class="muted"></span>
+          <button type="button" id="page-next">Next</button>
+        </div>
+      </section>
+
+      <!-- Bulk import -->
+      <section id="view-import" hidden>
+        <div class="card">
+          <h2>Import terms</h2>
+          <p class="hint">
+            Upload an Excel file (.xlsx) or a CSV file, or copy the cells in Excel and paste them below. Column headers in <span class="source-label">Chinese</span> or English are recognized:
+            中文 / Chinese, 英文 / English, 分类 / Category, 适用版本 / Applies to, 错误写法 / Wrong forms, 备注 / Note.
+            Nothing is saved until you have looked at the preview and confirmed.
+          </p>
+          <div class="row">
+            <label for="import-file">File</label>
+            <input id="import-file" type="file" accept=".xlsx,.xlsm,.csv,.txt,.tsv" />
+          </div>
+          <div class="row">
+            <label for="import-text">Or paste here</label>
+            <textarea id="import-text" rows="5" spellcheck="false" placeholder="Paste cells copied from Excel, or one English term per line"></textarea>
+          </div>
+          <div class="row">
+            <span class="label">Rows that are already in the glossary</span>
+            <label class="inline"><input type="radio" name="import-mode" value="update" checked /> Update them with the details from this file</label>
+            <label class="inline"><input type="radio" name="import-mode" value="add" /> Leave them as they are, only add new rows</label>
+          </div>
+          <button type="button" id="import-preview" class="primary">Preview</button>
+          <p id="import-status" class="status" role="status"></p>
+        </div>
+
+        <div id="import-result" class="card" hidden>
+          <h2>Preview</h2>
+          <div id="import-counts" class="counts"></div>
+          <details id="import-columns">
+            <summary>Columns: change this if a column was recognized wrongly</summary>
+            <label class="inline"><input type="checkbox" id="import-header" /> The first row is a header</label>
+            <div id="import-mapping" class="mapping"></div>
+            <button type="button" id="import-reread">Read again with these columns</button>
+          </details>
+          <div class="table-wrap">
+            <table id="import-table">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>Result</th>
+                  <th class="zh source-label">Chinese</th>
+                  <th>English</th>
+                  <th>Category</th>
+                  <th>Applies to</th>
+                  <th>Wrong forms</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p id="import-truncated" class="muted" hidden></p>
+          <button type="button" id="import-confirm" class="primary"></button>
+        </div>
+      </section>
+
+      <!-- Change log -->
+      <section id="view-history" hidden>
+        <p id="history-status" class="status" role="status"></p>
+        <div class="table-wrap">
+          <table id="history-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Who</th>
+                <th>What</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- People and roles -->
+      <section id="view-people" hidden>
+        <p class="hint">
+          People appear here after they have signed in to this page once. A viewer can search and export. An editor can also add, change, delete and import. An administrator can also change roles.
+        </p>
+        <p id="people-status" class="status" role="status"></p>
+        <div class="table-wrap">
+          <table id="people-table">
+            <thead>
+              <tr>
+                <th>Name (key alias)</th>
+                <th>Sign-in name</th>
+                <th>ID</th>
+                <th>Role</th>
+                <th>Last seen</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Dialog for adding and changing a row -->
+    <dialog id="term-dialog">
+      <form id="term-form" method="dialog">
+        <h2 id="term-title">Add term</h2>
+        <label for="term-zh" class="zh source-label">Chinese</label>
+        <input id="term-zh" class="zh" autocomplete="off" />
+        <label for="term-en">English (the standard form)</label>
+        <input id="term-en" autocomplete="off" spellcheck="false" required />
+        <div class="two">
+          <div>
+            <label for="term-category">Category</label>
+            <input id="term-category" list="category-options" autocomplete="off" />
+            <datalist id="category-options"></datalist>
+          </div>
+          <div>
+            <label for="term-applies">Applies to (version)</label>
+            <input id="term-applies" autocomplete="off" placeholder="for example: 3.1.60 and later" />
+          </div>
+        </div>
+        <label for="term-variants">Wrong forms, one per line</label>
+        <textarea id="term-variants" rows="3" spellcheck="false" placeholder="Spellings that must not be used. They get underlined, with the standard form as the suggestion."></textarea>
+        <label for="term-note">Note</label>
+        <textarea id="term-note" rows="2"></textarea>
+        <p id="term-status" class="status error" role="alert"></p>
+        <div class="actions">
+          <button type="button" id="term-cancel">Cancel</button>
+          <button type="submit" id="term-save" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Dialog for setting or changing the password. Opens once automatically after a key sign-in -->
+    <dialog id="password-dialog">
+      <form id="pw-form" method="dialog">
+        <h2 id="pw-title">Create a password</h2>
+        <p id="pw-hint" class="hint"></p>
+        <label for="pw-login">Name</label>
+        <input id="pw-login" autocomplete="username" spellcheck="false" required />
+        <div id="pw-current-row">
+          <label for="pw-current">Current password</label>
+          <input id="pw-current" type="password" autocomplete="current-password" />
+        </div>
+        <label for="pw-new">New password (at least 8 characters)</label>
+        <input id="pw-new" type="password" autocomplete="new-password" minlength="8" required />
+        <label for="pw-repeat">The same password again</label>
+        <input id="pw-repeat" type="password" autocomplete="new-password" required />
+        <label class="inline keep" id="pw-keep-row"><input type="checkbox" id="pw-keep" checked /> Keep me signed in on this computer</label>
+        <p id="pw-status" class="status error" role="alert"></p>
+        <div class="actions">
+          <button type="button" id="pw-skip">Not now</button>
+          <button type="submit" id="pw-save" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="admin.js"></script>
+  </body>
+</html>

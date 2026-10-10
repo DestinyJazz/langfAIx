@@ -1,0 +1,3 @@
+# Extra packages for development and tests. -r installs requirements.txt as well.
+-r requirements.txt
+pytest==9.1.1

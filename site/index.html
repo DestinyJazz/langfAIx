@@ -1,0 +1,2150 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>langfAIx: language fix with AI</title>
+    <meta
+      name="description"
+      content="A self-hosted, terminology-aware writing checker for teams. Rule checks run by themselves, a team glossary keeps terms consistent, and AI rewrites a sentence only when you ask."
+    />
+    <meta property="og:title" content="langfAIx: language fix with AI" />
+    <meta property="og:description" content="A self-hosted, terminology-aware writing checker for teams, for web pages and Microsoft Word." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="images/ai-card.png" />
+    <meta name="theme-color" content="#090e1a" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+
+    <!--
+      The intro page of langfAIx. One static file: no build step, no cookies, nothing loaded
+      from other servers. English and Chinese sit side by side in the markup, as elements
+      with data-l="en" or data-l="zh"; the script below shows one of the two.
+    -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var KEY = "langfaix-site-lang";
+        var TITLES = { en: "langfAIx: language fix with AI", zh: "langfAIx：用 AI 改好你写的文字" };
+
+        function stored() {
+          try {
+            return localStorage.getItem(KEY);
+          } catch (error) {
+            return null; // storage can be blocked; the page works without it
+          }
+        }
+
+        function show(lang) {
+          root.setAttribute("data-lang", lang);
+          root.lang = lang === "zh" ? "zh-Hans" : "en";
+          document.title = TITLES[lang];
+          // The script at the end of the page listens for this to play the headline.
+          if (window.dispatchEvent && typeof Event === "function") window.dispatchEvent(new Event("langfaix-lang"));
+        }
+
+        // ?lang=zh in the address wins, then the visitor's last choice, then English.
+        var asked = /[?&]lang=(zh|en)(&|$)/.exec(location.search);
+        var saved = stored();
+        show(asked ? asked[1] : saved === "zh" || saved === "en" ? saved : "en");
+
+        // "js" switches on the scroll-in effect. "will-stream" hides the finished headline
+        // until the streaming effect starts, so it does not flash first. If the effect
+        // never starts, the headline is shown as it is after three seconds.
+        root.classList.add("js");
+        var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!still) {
+          root.classList.add("will-stream");
+          setTimeout(function () {
+            if (!document.querySelector("h1.streaming, h1.done")) root.classList.remove("will-stream");
+          }, 3000);
+        }
+
+        document.addEventListener("click", function (event) {
+          var button = event.target.closest ? event.target.closest("[data-set-lang]") : null;
+          if (!button) return;
+          var lang = button.getAttribute("data-set-lang");
+          show(lang);
+          try {
+            localStorage.setItem(KEY, lang);
+          } catch (error) {}
+        });
+      })();
+    </script>
+
+    <style>
+      :root {
+        --bg: #ffffff;
+        --bg-soft: #f4f6fb;
+        --ink: #141a24;
+        --ink-soft: #566173;
+        --line: #dfe4ec;
+        --card: #ffffff;
+        --blue: #0b5cad;
+        --blue-soft: #e6f0fb;
+        --purple: #7a3fe0;
+        --purple-soft: #f0e9fd;
+        --red: #cf222e;
+        --red-soft: #fdeceb;
+        --green: #1a7f37;
+        --green-soft: #e6f6ea;
+        --amber: #9a6700;
+        --amber-soft: #fff5d6;
+        --shadow: 0 1px 2px rgba(20, 26, 36, 0.05), 0 10px 30px rgba(20, 26, 36, 0.08);
+        --shadow-up: 0 2px 4px rgba(20, 26, 36, 0.06), 0 18px 44px rgba(20, 26, 36, 0.14);
+
+        /* The top bar, the hero, the terminal and the footer are dark in both themes. */
+        --d-bg: #090e1a;
+        --d-bg-2: #111a2c;
+        --d-ink: #eef2f8;
+        --d-soft: #a3b3c9;
+        --d-line: rgba(255, 255, 255, 0.13);
+        --d-blue: #6cb0ff;
+        --d-purple: #b79bff;
+        --d-red: #ff7b72;
+        --d-green: #56d364;
+        --grad: linear-gradient(100deg, #2f81f7 0%, #8b5cf6 55%, #d946ef 100%);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c111b;
+          --bg-soft: #101724;
+          --ink: #e8edf4;
+          --ink-soft: #97a6ba;
+          --line: #243042;
+          --card: #121a28;
+          --blue: #6cb0ff;
+          --blue-soft: rgba(108, 176, 255, 0.13);
+          --purple: #b79bff;
+          --purple-soft: rgba(183, 155, 255, 0.14);
+          --red: #ff7b72;
+          --red-soft: rgba(255, 123, 114, 0.13);
+          --green: #56d364;
+          --green-soft: rgba(86, 211, 100, 0.13);
+          --amber: #e3b341;
+          --amber-soft: rgba(227, 179, 65, 0.13);
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+          --shadow-up: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 44px rgba(0, 0, 0, 0.45);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 76px;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "PingFang SC",
+          "Microsoft YaHei",
+          "Noto Sans CJK SC",
+          sans-serif;
+        font-size: 17px;
+        line-height: 1.6;
+      }
+
+      /* One language at a time. */
+      html[data-lang="en"] [data-l="zh"],
+      html[data-lang="zh"] [data-l="en"] {
+        display: none !important;
+      }
+
+      a {
+        color: var(--blue);
+        text-underline-offset: 3px;
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--d-blue);
+        outline-offset: 3px;
+        border-radius: 8px;
+      }
+
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 22px;
+      }
+
+      /* Icons: thin strokes in the colour of the text around them. */
+      .i {
+        width: 22px;
+        height: 22px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ---- Top bar ---- */
+      .top {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(9, 14, 26, 0.82);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        backdrop-filter: saturate(160%) blur(14px);
+        border-bottom: 1px solid var(--d-line);
+        color: var(--d-ink);
+      }
+
+      .top .wrap {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        min-height: 62px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 19px;
+        letter-spacing: -0.01em;
+        color: var(--d-ink);
+        text-decoration: none;
+      }
+
+      .brand img {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+      }
+
+      .top nav {
+        display: flex;
+        gap: 22px;
+        margin-left: auto;
+        font-size: 15px;
+      }
+
+      .top nav a {
+        color: var(--d-soft);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+
+      .top nav a:hover {
+        color: var(--d-ink);
+      }
+
+      .lang {
+        font: inherit;
+        font-size: 14px;
+        padding: 6px 14px;
+        border: 1px solid var(--d-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--d-ink);
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .lang:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      /* ---- Hero ---- */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--d-bg);
+        color: var(--d-ink);
+      }
+
+      /* Three soft lights that drift slowly. */
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: -30% -15%;
+        background:
+          radial-gradient(34% 40% at 18% 24%, rgba(47, 129, 247, 0.42), transparent 70%),
+          radial-gradient(30% 38% at 84% 20%, rgba(139, 92, 246, 0.4), transparent 70%),
+          radial-gradient(34% 36% at 58% 86%, rgba(217, 70, 239, 0.2), transparent 70%);
+        animation: drift 20s ease-in-out infinite alternate;
+        pointer-events: none;
+      }
+
+      /* A grid of dots that fades out towards the edges. */
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1.4px);
+        background-size: 24px 24px;
+        -webkit-mask-image: radial-gradient(75% 65% at 50% 30%, #000 20%, transparent 100%);
+        mask-image: radial-gradient(75% 65% at 50% 30%, #000 20%, transparent 100%);
+        pointer-events: none;
+      }
+
+      @keyframes drift {
+        from {
+          transform: translate3d(-2%, -1%, 0) scale(1);
+        }
+        to {
+          transform: translate3d(3%, 2%, 0) scale(1.08);
+        }
+      }
+
+      .hero .wrap {
+        position: relative;
+        z-index: 1;
+        padding-top: 84px;
+        padding-bottom: 84px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 26px;
+        padding: 7px 14px;
+        border: 1px solid var(--d-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        font-size: 14px;
+        color: var(--d-soft);
+      }
+
+      .pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--d-green);
+        box-shadow: 0 0 0 0 rgba(86, 211, 100, 0.6);
+        animation: pulse 2.4s ease-out infinite;
+      }
+
+      @keyframes pulse {
+        to {
+          box-shadow: 0 0 0 10px rgba(86, 211, 100, 0);
+        }
+      }
+
+      /* The headline. Two layers in one grid cell: "sizer" is the finished text, invisible,
+         and only holds the space; "live" is what is seen and what the streaming effect fills. */
+      h1 {
+        display: grid;
+        margin: 0 0 22px;
+        font-size: clamp(40px, 7.6vw, 80px);
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: -0.03em;
+      }
+
+      h1 > span {
+        grid-area: 1 / 1;
+      }
+
+      h1 .sizer {
+        visibility: hidden;
+      }
+
+      html.will-stream h1 .live {
+        visibility: hidden;
+      }
+
+      html.will-stream h1.streaming .live,
+      html.will-stream h1.done .live {
+        visibility: visible;
+      }
+
+      /* Chinese glyphs fill the line box, so wrapped lines need more room for the marks below them. */
+      h1[data-l="zh"] {
+        font-size: clamp(34px, 7.6vw, 80px);
+        line-height: 1.28;
+        letter-spacing: -0.01em;
+      }
+
+      /* A fixed place for the headline to break on phones, so no word is left alone on a line. */
+      br.narrow {
+        display: none;
+      }
+
+      @media (max-width: 560px) {
+        br.narrow {
+          display: inline;
+        }
+      }
+
+      /* The product's own marks: a red wavy line for a mistake, a purple dotted line for
+         "this could read better". */
+      .mark-fix {
+        text-decoration: underline wavy var(--d-red);
+        text-decoration-thickness: 3px;
+        text-underline-offset: 9px;
+        transition: text-decoration-color 0.7s;
+      }
+
+      .mark-ai {
+        background: var(--grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-decoration: underline dotted var(--d-purple);
+        text-decoration-thickness: 4px;
+        text-underline-offset: 9px;
+        transition: text-decoration-color 0.7s 0.25s;
+      }
+
+      /* While the headline streams in, the marks wait. The dotted line has to be taken away
+         altogether: the gradient is painted through the text, and a line counts as text. */
+      h1.streaming .mark-fix {
+        text-decoration-color: transparent;
+      }
+
+      h1.streaming .mark-ai {
+        text-decoration-line: none;
+      }
+
+      /* Each piece of text arrives lit up and settles, like tokens from a model. */
+      .tok {
+        animation: tok 0.5s ease-out both;
+      }
+
+      .mark-ai .tok {
+        animation-name: tok-plain;
+      }
+
+      @keyframes tok {
+        from {
+          opacity: 0;
+          color: var(--d-blue);
+        }
+      }
+
+      @keyframes tok-plain {
+        from {
+          opacity: 0;
+        }
+      }
+
+      /* The word that arrives misspelled, gets its red line, and is then corrected. */
+      .typo {
+        border-radius: 8px;
+      }
+
+      .typo.wrong {
+        text-decoration: underline wavy var(--d-red);
+        text-decoration-thickness: 3px;
+        text-underline-offset: 9px;
+      }
+
+      .typo.fixed {
+        animation: fixed 1.4s ease-out both;
+      }
+
+      @keyframes fixed {
+        from {
+          background: rgba(86, 211, 100, 0.38);
+        }
+        to {
+          background: rgba(86, 211, 100, 0);
+        }
+      }
+
+      /* The caret takes no width, so it never changes where the line breaks. */
+      .caret {
+        display: none;
+        width: 0;
+        position: relative;
+      }
+
+      h1.streaming .caret,
+      h1.done .caret {
+        display: inline-block;
+      }
+
+      .caret::after {
+        content: "";
+        position: absolute;
+        left: 0.07em;
+        bottom: -0.06em;
+        width: 0.08em;
+        height: 0.92em;
+        border-radius: 3px;
+        background: var(--d-blue);
+        animation: blink 1s steps(1) infinite;
+      }
+
+      h1.done .caret {
+        opacity: 0;
+        transition: opacity 0.5s 2.6s;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .lead {
+        max-width: 700px;
+        margin: 0 0 30px;
+        font-size: clamp(18px, 2.3vw, 21px);
+        color: var(--d-soft);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 22px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s,
+          background 0.15s;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .button.primary {
+        border: 0;
+        background: var(--grad);
+        color: #ffffff;
+        box-shadow: 0 8px 26px rgba(99, 102, 241, 0.42);
+      }
+
+      .button.primary:hover {
+        box-shadow: 0 12px 34px rgba(99, 102, 241, 0.6);
+      }
+
+      .button.ghost {
+        border-color: var(--d-line);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--d-ink);
+      }
+
+      .button.ghost:hover {
+        background: rgba(255, 255, 255, 0.13);
+        box-shadow: none;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 26px;
+        margin: 30px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 15px;
+        color: var(--d-soft);
+      }
+
+      .legend b {
+        font-weight: 600;
+        color: var(--d-ink);
+      }
+
+      .legend .wavy {
+        text-decoration: underline wavy var(--d-red);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 5px;
+      }
+
+      .legend .dotted {
+        text-decoration: underline dotted var(--d-purple);
+        text-decoration-thickness: 3px;
+        text-underline-offset: 5px;
+      }
+
+      /* ---- A screenshot inside a window frame ---- */
+      .window {
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .window .bar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 11px 14px;
+        background: var(--bg-soft);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .window .bar i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .window .bar i:nth-child(2) {
+        background: #febc2e;
+      }
+
+      .window .bar i:nth-child(3) {
+        background: #28c840;
+      }
+
+      .window .bar span {
+        margin-left: 10px;
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+
+      .window img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #ffffff;
+      }
+
+      .hero .window {
+        margin-top: 58px;
+        border-color: var(--d-line);
+        background: var(--d-bg-2);
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.04),
+          0 40px 110px rgba(47, 129, 247, 0.3),
+          0 20px 60px rgba(0, 0, 0, 0.55);
+      }
+
+      .hero .window .bar {
+        background: var(--d-bg-2);
+        border-bottom-color: var(--d-line);
+      }
+
+      .hero .window .bar span {
+        color: var(--d-soft);
+      }
+
+      /* ---- Sections ---- */
+      section {
+        padding: 88px 0;
+      }
+
+      section.soft {
+        background: var(--bg-soft);
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--purple);
+      }
+
+      /* A short wavy line, the same mark the product draws. */
+      .kicker::before {
+        content: "";
+        width: 30px;
+        height: 8px;
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 8'%3E%3Cpath d='M1 5c2.5-5 5-5 7.5 0s5 5 7.5 0 5-5 7.5 0 3.5 3 5.5 1' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 8'%3E%3Cpath d='M1 5c2.5-5 5-5 7.5 0s5 5 7.5 0 5-5 7.5 0 3.5 3 5.5 1' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: clamp(28px, 4.2vw, 42px);
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+      }
+
+      .sub {
+        max-width: 720px;
+        margin: 0 0 40px;
+        font-size: 18px;
+        color: var(--ink-soft);
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 19px;
+        letter-spacing: -0.01em;
+      }
+
+      /* ---- Cards ---- */
+      .grid3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      .card {
+        position: relative;
+        padding: 26px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-up);
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--ink-soft);
+      }
+
+      /* A coloured line along the top edge of the three main cards. */
+      .card.top-line {
+        overflow: hidden;
+      }
+
+      .card.top-line::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: var(--c);
+      }
+
+      .tile {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        margin-bottom: 18px;
+        border-radius: 12px;
+        background: var(--c-soft);
+        color: var(--c);
+      }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--c-soft);
+        color: var(--c);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .c-red {
+        --c: var(--red);
+        --c-soft: var(--red-soft);
+      }
+
+      .c-blue {
+        --c: var(--blue);
+        --c-soft: var(--blue-soft);
+      }
+
+      .c-purple {
+        --c: var(--purple);
+        --c-soft: var(--purple-soft);
+      }
+
+      .c-green {
+        --c: var(--green);
+        --c-soft: var(--green-soft);
+      }
+
+      .c-amber {
+        --c: var(--amber);
+        --c-soft: var(--amber-soft);
+      }
+
+      /* ---- How a sentence travels ---- */
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
+        margin: 44px 0 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+
+      .flow li {
+        position: relative;
+        padding: 0 18px 0 0;
+        counter-increment: step;
+      }
+
+      /* The line that joins the steps. */
+      .flow li::before {
+        content: "";
+        position: absolute;
+        top: 17px;
+        left: 36px;
+        right: 0;
+        height: 2px;
+        background: var(--line);
+      }
+
+      .flow li:last-child::before {
+        display: none;
+      }
+
+      /* The last stretch is the one a click starts. */
+      .flow li:nth-child(3)::before {
+        background: repeating-linear-gradient(90deg, var(--purple) 0 6px, transparent 6px 12px);
+      }
+
+      .flow .dot {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        margin-bottom: 14px;
+        border-radius: 50%;
+        background: var(--c);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 15px;
+      }
+
+      .flow .dot::before {
+        content: counter(step);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .flow .dot {
+          color: #0c111b;
+        }
+      }
+
+      .flow strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .flow span.t {
+        display: block;
+        font-size: 15px;
+        color: var(--ink-soft);
+      }
+
+      /* ---- Screenshots ---- */
+      .screens {
+        display: grid;
+        grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr);
+        gap: 30px;
+        align-items: start;
+      }
+
+      .screens .stack {
+        display: grid;
+        gap: 30px;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      figcaption {
+        margin-top: 12px;
+        font-size: 15px;
+        color: var(--ink-soft);
+      }
+
+      .note {
+        margin: 30px 0 0;
+        font-size: 14px;
+        color: var(--ink-soft);
+      }
+
+      /* ---- Feature list ---- */
+      .feature {
+        display: flex;
+        gap: 16px;
+        padding: 22px;
+      }
+
+      .feature .tile {
+        margin: 0;
+        flex: none;
+      }
+
+      .feature h3 {
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+
+      .feature p {
+        font-size: 15.5px;
+      }
+
+      /* ---- Comparison table ---- */
+      .scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+
+      table {
+        width: 100%;
+        min-width: 780px;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+      }
+
+      tr:last-child td,
+      tr:last-child th {
+        border-bottom: 0;
+      }
+
+      thead th {
+        font-size: 14px;
+        color: var(--ink-soft);
+        font-weight: 600;
+        vertical-align: bottom;
+      }
+
+      thead th.us {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--ink);
+      }
+
+      tbody th {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      td.us,
+      th.us {
+        background: var(--purple-soft);
+      }
+
+      .yes,
+      .no {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 7px;
+      }
+
+      .yes .i,
+      .no .i {
+        width: 18px;
+        height: 18px;
+        margin-top: 3px;
+        stroke-width: 2.4;
+      }
+
+      .yes .i {
+        color: var(--green);
+      }
+
+      .no {
+        color: var(--ink-soft);
+      }
+
+      /* ---- Limits ---- */
+      .limits {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .limits li {
+        display: flex;
+        gap: 12px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--amber);
+        border-radius: 12px;
+        background: var(--card);
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+
+      /* ---- Self-host ---- */
+      .two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 44px;
+        align-items: start;
+      }
+
+      .steps {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: n;
+      }
+
+      .steps li {
+        position: relative;
+        padding: 0 0 26px 54px;
+        counter-increment: n;
+      }
+
+      .steps li::before {
+        content: counter(n);
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--grad);
+        color: #ffffff;
+        font-weight: 700;
+      }
+
+      .steps li::after {
+        content: "";
+        position: absolute;
+        left: 17px;
+        top: 42px;
+        bottom: 6px;
+        width: 2px;
+        background: var(--line);
+      }
+
+      .steps li:last-child::after {
+        display: none;
+      }
+
+      .steps strong {
+        display: block;
+      }
+
+      .steps span {
+        color: var(--ink-soft);
+      }
+
+      .steps strong span {
+        color: var(--ink);
+      }
+
+      .terminal {
+        border: 1px solid var(--d-line);
+        border-radius: 14px;
+        background: var(--d-bg);
+        color: var(--d-ink);
+        box-shadow: var(--shadow-up);
+        overflow: hidden;
+      }
+
+      .terminal .bar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 11px 14px;
+        background: var(--d-bg-2);
+        border-bottom: 1px solid var(--d-line);
+      }
+
+      .terminal .bar i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .terminal .bar i:nth-child(2) {
+        background: #febc2e;
+      }
+
+      .terminal .bar i:nth-child(3) {
+        background: #28c840;
+      }
+
+      .copy {
+        margin-left: auto;
+        font: inherit;
+        font-size: 13px;
+        padding: 4px 12px;
+        border: 1px solid var(--d-line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--d-soft);
+        cursor: pointer;
+      }
+
+      .copy:hover {
+        color: var(--d-ink);
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      pre {
+        margin: 0;
+        padding: 20px 22px;
+        overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 14.5px;
+        line-height: 1.85;
+      }
+
+      pre .p {
+        color: var(--d-purple);
+        user-select: none;
+      }
+
+      pre .dim {
+        color: #7f8ea3;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 0.92em;
+      }
+
+      p code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+      }
+
+      .after {
+        margin: 24px 0 0;
+        color: var(--ink-soft);
+      }
+
+      /* ---- Teams and privacy ---- */
+      .panel {
+        padding: 34px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2 {
+        font-size: clamp(24px, 3vw, 30px);
+      }
+
+      .panel p {
+        margin: 0 0 14px;
+        color: var(--ink-soft);
+      }
+
+      /* The teams panel has a border in the brand's gradient. */
+      .panel.glow {
+        border: 2px solid transparent;
+        background:
+          linear-gradient(var(--card), var(--card)) padding-box,
+          var(--grad) border-box;
+      }
+
+      .ticks {
+        margin: 0 0 16px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .ticks li {
+        display: flex;
+        gap: 10px;
+        padding: 5px 0;
+        color: var(--ink-soft);
+      }
+
+      .ticks .i {
+        width: 20px;
+        height: 20px;
+        margin-top: 3px;
+        color: var(--green);
+        stroke-width: 2.4;
+      }
+
+      .panel .tile {
+        margin-bottom: 16px;
+      }
+
+      /* ---- Closing band ---- */
+      .band {
+        position: relative;
+        overflow: hidden;
+        padding: 72px 0;
+        background: var(--grad);
+        color: #ffffff;
+        text-align: center;
+      }
+
+      .band::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px);
+        background-size: 22px 22px;
+        -webkit-mask-image: radial-gradient(60% 90% at 50% 50%, #000, transparent);
+        mask-image: radial-gradient(60% 90% at 50% 50%, #000, transparent);
+        pointer-events: none;
+      }
+
+      .band .wrap {
+        position: relative;
+        z-index: 1;
+      }
+
+      .band h2 {
+        margin-bottom: 26px;
+      }
+
+      .band .button {
+        border: 0;
+        background: #ffffff;
+        color: #1b1640;
+      }
+
+      /* ---- Footer ---- */
+      footer {
+        padding: 40px 0 60px;
+        background: var(--d-bg);
+        color: var(--d-soft);
+        font-size: 14px;
+      }
+
+      footer p {
+        margin: 0 0 8px;
+      }
+
+      footer a {
+        color: var(--d-blue);
+      }
+
+      /* ---- Things slide up as they scroll into view (only when scripts run) ---- */
+      html.js .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.7s ease,
+          transform 0.7s ease;
+      }
+
+      html.js .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html.js .reveal {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+
+        .hero::before,
+        .pill::before,
+        .tok,
+        .caret::after {
+          animation: none;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      /* ---- Narrow screens ---- */
+      @media (max-width: 900px) {
+        .top nav {
+          display: none;
+        }
+
+        .lang {
+          margin-left: auto;
+        }
+
+        .hero .wrap {
+          padding-top: 56px;
+          padding-bottom: 56px;
+        }
+
+        .hero .window {
+          margin-top: 40px;
+        }
+
+        section {
+          padding: 60px 0;
+        }
+
+        .grid3,
+        .screens,
+        .limits,
+        .two {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .screens .tall {
+          max-width: 340px;
+          margin: 0 auto;
+        }
+
+        /* The steps go down the page, joined by a line on the left. */
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .flow li {
+          padding: 0 0 26px 54px;
+        }
+
+        .flow .dot {
+          position: absolute;
+          left: 0;
+          top: 0;
+          margin: 0;
+        }
+
+        .flow li::before {
+          top: 40px;
+          bottom: 4px;
+          left: 17px;
+          right: auto;
+          width: 2px;
+          height: auto;
+        }
+
+        .flow li:nth-child(3)::before {
+          background: repeating-linear-gradient(180deg, var(--purple) 0 6px, transparent 6px 12px);
+        }
+
+        /* Let the row headings wrap, so the first columns of the comparison fit on a phone. */
+        table {
+          min-width: 640px;
+          font-size: 14px;
+        }
+
+        tbody th {
+          white-space: normal;
+          min-width: 96px;
+        }
+
+        th,
+        td {
+          padding: 10px;
+        }
+
+        .panel {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- The icons, drawn once here and used by name below. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-squiggle" viewBox="0 0 24 24"><path d="M4 8h16" /><path d="M3 16c2.5-5 4.5-5 6 0s3.5 5 6 0 3.5-5 6 0" /></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11" /><path d="M9 8h6" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z" /><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" /></symbol>
+      <symbol id="i-browser" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M3 9h18" /><path d="M6.5 6.5h.01M9.5 6.5h.01" /></symbol>
+      <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 13h6M10 17h6" /></symbol>
+      <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M3 10h18M3 15h18M9 10v10" /></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3M13.5 9.5l2 2" /></symbol>
+      <symbol id="i-mark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z" /></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /><path d="M9 12l2 2 4-4" /></symbol>
+      <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" /><path d="M3 20c.5-3.6 2.8-5.5 6-5.5s5.5 1.9 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16.5 14.6c2.5.3 4 1.9 4.5 4.4" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14" /></symbol>
+      <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z" /><path d="M12 10v4M12 17h.01" /></symbol>
+    </svg>
+
+    <header class="top">
+      <div class="wrap">
+        <a class="brand" href="#top"><img src="favicon.png" alt="" width="28" height="28" />langfAIx</a>
+
+        <nav aria-label="Sections">
+          <a href="#what"><span data-l="en">What it does</span><span data-l="zh">做什么</span></a>
+          <a href="#see"><span data-l="en">Screens</span><span data-l="zh">截图</span></a>
+          <a href="#compare"><span data-l="en">Compare</span><span data-l="zh">比较</span></a>
+          <a href="#selfhost"><span data-l="en">Self-host</span><span data-l="zh">自己架设</span></a>
+          <a href="#teams"><span data-l="en">For teams</span><span data-l="zh">给团队</span></a>
+          <a href="https://github.com/DestinyJazz/langfAIx">GitHub</a>
+        </nav>
+
+        <button class="lang" type="button" data-set-lang="zh" data-l="en" lang="zh-Hans">中文</button>
+        <button class="lang" type="button" data-set-lang="en" data-l="zh" lang="en">English</button>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- ================= Hero ================= -->
+      <div class="hero">
+        <div class="wrap">
+          <p class="pill">
+            <span data-l="en">Open source · AGPL-3.0 · self-hosted</span>
+            <span data-l="zh">开源 · AGPL-3.0 · 自己架设</span>
+          </p>
+
+          <!--
+            The headline streams in like text from a model, arrives with one word misspelled,
+            gets the red line, and is corrected: the product in three seconds. The script at
+            the end of the page does this. Without scripts, or when the visitor asked for
+            reduced motion, the finished headline below is simply shown.
+          -->
+          <h1 data-l="en" aria-label="Language fix with AI.">
+            <span class="sizer" aria-hidden="true">Language <span class="mark-fix">fix</span> <br class="narrow" />with <span class="mark-ai">AI</span>.</span>
+            <span class="live" aria-hidden="true">Language <span class="mark-fix">fix</span> <br class="narrow" />with <span class="mark-ai">AI</span>.</span>
+          </h1>
+          <h1 data-l="zh" aria-label="用 AI 改好你写的文字。">
+            <span class="sizer" aria-hidden="true">用 <span class="mark-ai">AI</span> <br class="narrow" /><span class="mark-fix">改好</span>你写的文字。</span>
+            <span class="live" aria-hidden="true">用 <span class="mark-ai">AI</span> <br class="narrow" /><span class="mark-fix">改好</span>你写的文字。</span>
+          </h1>
+
+          <p class="lead" data-l="en">
+            langfAIx is a writing checker for teams that runs on your own server. It underlines mistakes as you write, in web pages and in Microsoft
+            Word, keeps your terminology consistent, and rewrites a sentence with AI only when you ask.
+          </p>
+          <p class="lead" data-l="zh">
+            langfAIx（language fix with AI）是给团队用的写作检查工具，跑在你自己的服务器上。它在网页输入框和 Microsoft Word
+            里边写边划线，让术语保持一致，只有你点了，AI 才会改写一句话。
+          </p>
+
+          <div class="actions">
+            <a class="button primary" href="https://github.com/DestinyJazz/langfAIx">
+              <svg class="i"><use href="#i-code" /></svg>
+              <span data-l="en">Get the code on GitHub</span><span data-l="zh">到 GitHub 取代码</span>
+            </a>
+            <a class="button ghost" href="#selfhost">
+              <span data-l="en">How to self-host</span><span data-l="zh">怎么自己架设</span>
+              <svg class="i"><use href="#i-arrow" /></svg>
+            </a>
+          </div>
+
+          <ul class="legend" data-l="en">
+            <li>The marks you will see as you write:</li>
+            <li><b class="wavy">a mistake</b></li>
+            <li><b class="dotted">could read better</b></li>
+          </ul>
+          <ul class="legend" data-l="zh">
+            <li>写的时候你会看到两种线：</li>
+            <li><b class="wavy">写错了</b></li>
+            <li><b class="dotted">可以改得更好</b></li>
+          </ul>
+
+          <figure class="window reveal">
+            <div class="bar">
+              <i></i><i></i><i></i>
+              <span data-l="en">A mail editor in the browser</span><span data-l="zh">浏览器里的邮件编辑器</span>
+            </div>
+            <img
+              src="images/ai-card.png"
+              width="1560"
+              height="656"
+              alt="A rich-text mail editor with two misspelled words underlined in red. A card shows the AI's rewrite of one sentence, the reasons, the token count and the cost, with Accept and Dismiss buttons."
+            />
+          </figure>
+        </div>
+      </div>
+
+      <!-- ================= What it does ================= -->
+      <section id="what">
+        <div class="wrap">
+          <p class="kicker"><span data-l="en">What it does</span><span data-l="zh">做什么</span></p>
+          <h2><span data-l="en">Three things, kept apart on purpose</span><span data-l="zh">三件事，故意分开</span></h2>
+          <p class="sub" data-l="en">What runs by itself is free and stays on your server. What costs money or leaves the server happens only on a click.</p>
+          <p class="sub" data-l="zh">自己运行的那部分不花钱，文字不出你的服务器。要花钱、要把文字送出去的那部分，点了才发生。</p>
+
+          <div class="grid3">
+            <div class="card top-line c-red reveal">
+              <div class="tile"><svg class="i"><use href="#i-squiggle" /></svg></div>
+              <span class="tag"><span data-l="en">Automatic</span><span data-l="zh">自动</span></span>
+              <h3><span data-l="en">Rule checks</span><span data-l="zh">规则检查 (rule check)</span></h3>
+              <p data-l="en">Spelling, grammar and style are checked as you type by a LanguageTool server that you host. No model is involved.</p>
+              <p data-l="zh">拼写、语法、文体，边写边查，用的是你自己架的 LanguageTool 服务器。这一步不经过任何模型。</p>
+            </div>
+            <div class="card top-line c-blue reveal">
+              <div class="tile"><svg class="i"><use href="#i-book" /></svg></div>
+              <span class="tag"><span data-l="en">Automatic</span><span data-l="zh">自动</span></span>
+              <h3><span data-l="en">A glossary your team owns</span><span data-l="zh">团队自己的术语表 (glossary)</span></h3>
+              <p data-l="en">
+                Standard terms are not flagged as typos. Registered wrong forms are flagged, and so are source-language terms left inside English text,
+                with your English term as the suggestion.
+              </p>
+              <p data-l="zh">标准译法不会被当成错字。登记过的错误写法会被提示。英文里夹着没翻译的源语言术语也会被提示，建议就是你们定的英文。</p>
+            </div>
+            <div class="card top-line c-purple reveal">
+              <div class="tile"><svg class="i"><use href="#i-spark" /></svg></div>
+              <span class="tag"><span data-l="en">Only on a click</span><span data-l="zh">点了才运行</span></span>
+              <h3><span data-l="en">AI rewriting</span><span data-l="zh">AI 改写</span></h3>
+              <p data-l="en">
+                One sentence at a time, through your own LLM gateway. Every call shows its tokens and its cost. With a self-hosted model, no text
+                leaves your network.
+              </p>
+              <p data-l="zh">一次一句，走你自己的 LLM 网关 (gateway)。每一次都显示用了多少 token、花了多少钱。接自己架的模型时，文字完全不出内网。</p>
+            </div>
+          </div>
+
+          <!-- What happens to a sentence, in order. The dashed stretch is the one a click starts. -->
+          <ol class="flow reveal">
+            <li class="c-green">
+              <span class="dot"></span>
+              <strong><span data-l="en">You type</span><span data-l="zh">你在打字</span></strong>
+              <span class="t" data-l="en">In a text box on any web page, or in a Word document.</span>
+              <span class="t" data-l="zh">在任何网页的输入框里，或者 Word 文档里。</span>
+            </li>
+            <li class="c-red">
+              <span class="dot"></span>
+              <strong><span data-l="en">Your server checks it</span><span data-l="zh">你的服务器检查</span></strong>
+              <span class="t" data-l="en">The rules and the glossary. Red lines appear.</span>
+              <span class="t" data-l="zh">规则加术语表。红线出现。</span>
+            </li>
+            <li class="c-blue">
+              <span class="dot"></span>
+              <strong><span data-l="en">Hints, for free</span><span data-l="zh">免费的提示</span></strong>
+              <span class="t" data-l="en">Purple lines mark sentences worth a second look. Worked out from the check result, without AI.</span>
+              <span class="t" data-l="zh">淡紫色的线标出值得再看一眼的句子。用检查结果算出来的，不调用 AI。</span>
+            </li>
+            <li class="c-purple">
+              <span class="dot"></span>
+              <strong><span data-l="en">You click, AI answers</span><span data-l="zh">你点了，AI 才回答</span></strong>
+              <span class="t" data-l="en">Only that sentence goes to the model you chose. The card shows what it cost.</span>
+              <span class="t" data-l="zh">只有那一句送到你选的模型。卡片上写着花了多少。</span>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ================= Screenshots ================= -->
+      <section id="see" class="soft">
+        <div class="wrap">
+          <p class="kicker"><span data-l="en">Screens</span><span data-l="zh">截图</span></p>
+          <h2><span data-l="en">What it looks like</span><span data-l="zh">长什么样</span></h2>
+          <p class="sub" data-l="en">The same checks in the browser and in Word, and one page where the team keeps its terms.</p>
+          <p class="sub" data-l="zh">浏览器和 Word 里是同一套检查，另有一个页面给团队维护术语。</p>
+
+          <div class="screens">
+            <div class="stack">
+              <figure class="reveal">
+                <div class="window">
+                  <div class="bar">
+                    <i></i><i></i><i></i><span data-l="en">Terminology</span><span data-l="zh">术语</span>
+                  </div>
+                  <img
+                    src="images/terminology.png"
+                    width="1560"
+                    height="420"
+                    loading="lazy"
+                    alt="A text box with a Chinese term inside an English sentence. A card titled Terminology suggests the English term from the team glossary."
+                  />
+                </div>
+                <figcaption data-l="en">A source-language term left in English text. The glossary suggests the team's English term.</figcaption>
+                <figcaption data-l="zh">英文里夹着一个没翻译的术语。术语表给出团队定的英文。</figcaption>
+              </figure>
+              <figure class="reveal">
+                <div class="window">
+                  <div class="bar">
+                    <i></i><i></i><i></i><span data-l="en">Glossary admin page</span><span data-l="zh">术语表管理页面</span>
+                  </div>
+                  <img
+                    src="images/glossary-admin.png"
+                    width="1280"
+                    height="860"
+                    loading="lazy"
+                    alt="The glossary admin page: a table of terms with source term, English term, category, applies-to, wrong forms and last change, with search, filters, import and export."
+                  />
+                </div>
+                <figcaption data-l="en">Add, search, import from Excel or CSV, export, roles and a change log.</figcaption>
+                <figcaption data-l="zh">增删改查、从 Excel 或 CSV 导入、导出、角色、改动记录。</figcaption>
+              </figure>
+            </div>
+            <figure class="tall reveal">
+              <div class="window">
+                <div class="bar">
+                  <i></i><i></i><i></i><span data-l="en">Word task pane</span><span data-l="zh">Word 侧边栏</span>
+                </div>
+                <img
+                  src="images/word-task-pane.png"
+                  width="720"
+                  height="1800"
+                  loading="lazy"
+                  alt="The Word task pane: an AI rewrite with its cost and model name, and two spelling issues with suggestion buttons, Dismiss, Add to dictionary and Improve sentence with AI."
+                />
+              </div>
+              <figcaption data-l="en">Issues on the pages you can see, AI rewriting with its cost, and term lookup.</figcaption>
+              <figcaption data-l="zh">屏幕上这几页的问题、带成本的 AI 改写、查术语。</figcaption>
+            </figure>
+          </div>
+
+          <p class="note" data-l="en">
+            The screenshots come from the project's automated browser tests and use made-up text. The Word task pane is shown as rendered in a test
+            browser, not inside Word.
+          </p>
+          <p class="note" data-l="zh">截图来自项目的自动浏览器测试，里面的文字都是编的。Word 的侧边栏是在测试用的浏览器里渲染的，不是在 Word 里截的。</p>
+        </div>
+      </section>
+
+      <!-- ================= What you get ================= -->
+      <section id="parts">
+        <div class="wrap">
+          <p class="kicker"><span data-l="en">In the box</span><span data-l="zh">包含什么</span></p>
+          <h2><span data-l="en">Two front ends, one backend</span><span data-l="zh">两个前端，一个后台</span></h2>
+          <p class="sub" data-l="en">Prompts and glossary are managed in one place, and users never see the provider key.</p>
+          <p class="sub" data-l="zh">提示词和术语表集中管理，使用者看不到模型服务商的 key。</p>
+
+          <div class="grid3">
+            <div class="card feature c-blue reveal">
+              <div class="tile"><svg class="i"><use href="#i-browser" /></svg></div>
+              <div>
+                <h3><span data-l="en">Browser extension</span><span data-l="zh">浏览器扩展</span></h3>
+                <p data-l="en">Chrome and Edge. Text areas, single-line inputs and rich-text editors, also inside frames. One-click replace, with undo.</p>
+                <p data-l="zh">支持 Chrome 和 Edge。多行、单行输入框和富文本编辑器（包括内嵌框架里的）都能划线。点一下替换，可以撤销。</p>
+              </div>
+            </div>
+            <div class="card feature c-blue reveal">
+              <div class="tile"><svg class="i"><use href="#i-doc" /></svg></div>
+              <div>
+                <h3><span data-l="en">Word add-in</span><span data-l="zh">Word 插件</span></h3>
+                <p data-l="en">The same checks in Word for Windows, following the pages on screen, with a task pane for suggestions and AI.</p>
+                <p data-l="zh">Windows 版 Word 里同样的检查，跟着屏幕上的页面走。侧边栏里看建议、用 AI 改写。</p>
+              </div>
+            </div>
+            <div class="card feature c-blue reveal">
+              <div class="tile"><svg class="i"><use href="#i-table" /></svg></div>
+              <div>
+                <h3><span data-l="en">Glossary admin page</span><span data-l="zh">术语表管理页面</span></h3>
+                <p data-l="en">Import from Excel or CSV, export, three roles, a change log, sign-in with a name and password.</p>
+                <p data-l="zh">从 Excel 或 CSV 导入，导出，三种角色，改动记录，名字加密码登录。</p>
+              </div>
+            </div>
+            <div class="card feature c-purple reveal">
+              <div class="tile"><svg class="i"><use href="#i-key" /></svg></div>
+              <div>
+                <h3><span data-l="en">A key and a budget per user</span><span data-l="zh">每人一把 key，各有预算</span></h3>
+                <p data-l="en">Through LiteLLM virtual keys. Works with OpenAI and with self-hosted models such as vLLM and Ollama.</p>
+                <p data-l="zh">用的是 LiteLLM 的虚拟 key (virtual key)。可以接 OpenAI，也可以接自己架的模型，例如 vLLM 和 Ollama。</p>
+              </div>
+            </div>
+            <div class="card feature c-purple reveal">
+              <div class="tile"><svg class="i"><use href="#i-mark" /></svg></div>
+              <div>
+                <h3><span data-l="en">Personal dictionary</span><span data-l="zh">个人词典</span></h3>
+                <p data-l="en">Words you add stop being flagged. Stored on your own computer, no account needed.</p>
+                <p data-l="zh">加进去的词不再被标成错字。存在你自己的电脑上，不需要账号。</p>
+              </div>
+            </div>
+            <div class="card feature c-purple reveal">
+              <div class="tile"><svg class="i"><use href="#i-globe" /></svg></div>
+              <div>
+                <h3><span data-l="en">Languages</span><span data-l="zh">语言</span></h3>
+                <p data-l="en">English, Chinese, Catalan, Dutch, French and German. English is the most tried.</p>
+                <p data-l="zh">英语、中文、加泰罗尼亚语、荷兰语、法语、德语。试得最多的是英语。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= Compare ================= -->
+      <section id="compare" class="soft">
+        <div class="wrap">
+          <p class="kicker"><span data-l="en">Compare</span><span data-l="zh">比较</span></p>
+          <h2><span data-l="en">Where it fits, and where it does not</span><span data-l="zh">适合谁，不适合谁</span></h2>
+          <p class="sub" data-l="en">
+            If all you need is spelling and grammar in the browser, LanguageTool's own extension pointed at your server, or Harper, is simpler. langfAIx
+            is for teams that also want an enforced glossary, AI rewriting under their own control, and Word.
+          </p>
+          <p class="sub" data-l="zh">
+            如果只要浏览器里的拼写和语法检查，把 LanguageTool 官方扩展指向你自己的服务器，或者用 Harper，都更简单。langfAIx
+            是给还想要这几样的团队用的：管得住的术语表、掌握在自己手里的 AI 改写、Word。
+          </p>
+
+          <div class="scroll reveal">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th class="us">langfAIx</th>
+                  <th><span data-l="en">LanguageTool's extension with your own server</span><span data-l="zh">LanguageTool 官方扩展接自己的服务器</span></th>
+                  <th>Harper</th>
+                  <th>Grammarly Business</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th><span data-l="en">Self-hosted</span><span data-l="zh">自己架设</span></th>
+                  <td class="us">
+                    <span class="yes"><svg class="i"><use href="#i-check" /></svg><span data-l="en">yes</span><span data-l="zh">是</span></span>
+                  </td>
+                  <td>
+                    <span class="yes"><svg class="i"><use href="#i-check" /></svg><span data-l="en">yes</span><span data-l="zh">是</span></span>
+                  </td>
+                  <td><span data-l="en">runs in the browser</span><span data-l="zh">在浏览器里运行</span></td>
+                  <td>
+                    <span class="no"><svg class="i"><use href="#i-x" /></svg><span data-l="en">no</span><span data-l="zh">否</span></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th><span data-l="en">Rule checks</span><span data-l="zh">规则检查</span></th>
+                  <td class="us"><span data-l="en">LanguageTool, open-source rules</span><span data-l="zh">LanguageTool 的开源规则</span></td>
+                  <td>LanguageTool</td>
+                  <td><span data-l="en">its own rules, English only</span><span data-l="zh">自己的规则，只有英文</span></td>
+                  <td><span data-l="en">proprietary</span><span data-l="zh">私有</span></td>
+                </tr>
+                <tr>
+                  <th><span data-l="en">Team glossary with wrong forms</span><span data-l="zh">带错误写法的团队术语表</span></th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg class="i"><use href="#i-check" /></svg><span data-l="en">yes, with a source language</span
+                      ><span data-l="zh">有，可以带源语言</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"><svg class="i"><use href="#i-x" /></svg><span data-l="en">no</span><span data-l="zh">没有</span></span>
+                  </td>
+                  <td>
+                    <span class="no"><svg class="i"><use href="#i-x" /></svg><span data-l="en">no</span><span data-l="zh">没有</span></span>
+                  </td>
+                  <td><span data-l="en">style guide, English</span><span data-l="zh">文体指南，英文</span></td>
+                </tr>
+                <tr>
+                  <th><span data-l="en">AI rewriting</span><span data-l="zh">AI 改写</span></th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg class="i"><use href="#i-check" /></svg><span data-l="en">on a click, your own gateway, cost shown</span
+                      ><span data-l="zh">点了才运行，走自己的网关，显示成本</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"
+                      ><svg class="i"><use href="#i-x" /></svg><span data-l="en">no (cloud premium only)</span
+                      ><span data-l="zh">没有（只在云端付费版）</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"><svg class="i"><use href="#i-x" /></svg><span data-l="en">no</span><span data-l="zh">没有</span></span>
+                  </td>
+                  <td><span data-l="en">yes, their cloud</span><span data-l="zh">有，在他们的云上</span></td>
+                </tr>
+                <tr>
+                  <th>Word</th>
+                  <td class="us"><span data-l="en">add-in, Windows, Microsoft 365</span><span data-l="zh">插件，Windows，Microsoft 365</span></td>
+                  <td><span data-l="en">official add-in</span><span data-l="zh">官方插件</span></td>
+                  <td>
+                    <span class="no"><svg class="i"><use href="#i-x" /></svg><span data-l="en">no</span><span data-l="zh">没有</span></span>
+                  </td>
+                  <td><span data-l="en">yes</span><span data-l="zh">有</span></td>
+                </tr>
+                <tr>
+                  <th><span data-l="en">License</span><span data-l="zh">许可证</span></th>
+                  <td class="us">AGPL-3.0</td>
+                  <td><span data-l="en">LGPL-2.1 server</span><span data-l="zh">服务器是 LGPL-2.1</span></td>
+                  <td>Apache-2.0</td>
+                  <td><span data-l="en">commercial</span><span data-l="zh">商业</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin: 56px 0 18px; font-size: 22px">
+            <span data-l="en">What it does not do well yet</span><span data-l="zh">现在还做得不够好的</span>
+          </h3>
+          <ul class="limits">
+            <li class="reveal">
+              <span data-l="en">Setup is not trivial: five containers, and for the Word add-in a host name with an HTTPS certificate that users' computers trust.</span>
+              <span data-l="zh">架设不简单：五个容器。要用 Word 插件的话，还要一个域名和使用者电脑信任的 HTTPS 证书。</span>
+            </li>
+            <li class="reveal">
+              <span data-l="en">The Word add-in needs Word for Windows with a Microsoft 365 subscription and is installed by sideloading. Mac and Word for the web are untested.</span>
+              <span data-l="zh">Word 插件只支持 Windows 上订阅版 (Microsoft 365) 的 Word，用旁加载 (sideload) 的方式安装。Mac 和网页版没有试过。</span>
+            </li>
+            <li class="reveal">
+              <span data-l="en">Rule quality is that of open-source LanguageTool, which is weaker than its paid service. The AI rewrite is meant to cover the gap.</span>
+              <span data-l="zh">规则质量取决于开源版的 LanguageTool，比它的付费版弱。这部分由 AI 改写来补。</span>
+            </li>
+            <li class="reveal">
+              <span data-l="en">No Google Docs, or other editors that draw their text on a canvas.</span>
+              <span data-l="zh">不支持 Google Docs 这类把文字画在 canvas 上的编辑器。</span>
+            </li>
+            <li class="reveal">
+              <span data-l="en">Languages other than English are newer. AI rewriting in them has not been tried with real model calls.</span>
+              <span data-l="zh">英语以外的语言是后来加的。这些语言的 AI 改写还没有用真的模型调用试过。</span>
+            </li>
+            <li class="reveal">
+              <span data-l="en">One maintainer.</span>
+              <span data-l="zh">只有一个人在维护。</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ================= Self-host ================= -->
+      <section id="selfhost">
+        <div class="wrap">
+          <p class="kicker"><span data-l="en">Self-host</span><span data-l="zh">自己架设</span></p>
+          <h2><span data-l="en">Run it on your own server</span><span data-l="zh">架在你自己的服务器上</span></h2>
+          <p class="sub" data-l="en">You need Docker with the compose plugin and about 4 GB of memory.</p>
+          <p class="sub" data-l="zh">需要 Docker 和 compose 插件，约 4 GB 内存。</p>
+
+          <div class="two">
+            <ol class="steps reveal">
+              <li>
+                <strong><span data-l="en">Start the stack</span><span data-l="zh">把整套服务起起来</span></strong>
+                <span data-l="en">Copy the example settings, set three secrets, and bring it up.</span>
+                <span data-l="zh">复制设置的样本，填三个密钥，然后启动。</span>
+              </li>
+              <li>
+                <strong><span data-l="en">Add a model and a key</span><span data-l="zh">加一个模型，生成一把 key</span></strong>
+                <span data-l="en">In the LiteLLM admin UI. Point it at OpenAI or at a model you host.</span>
+                <span data-l="zh">在 LiteLLM 的管理后台里做。可以指向 OpenAI，也可以指向你自己架的模型。</span>
+              </li>
+              <li>
+                <strong><span data-l="en">Load the extension</span><span data-l="zh">加载扩展</span></strong>
+                <span data-l="en">Load the <code>browser-extension</code> folder in Chrome or Edge, enter your server's address and your key, and type into any text box.</span>
+                <span data-l="zh">在 Chrome 或 Edge 里加载 <code>browser-extension</code> 文件夹，填服务器地址和你的 key，然后在任何输入框里打字试试。</span>
+              </li>
+            </ol>
+
+            <div class="terminal reveal">
+              <div class="bar">
+                <i></i><i></i><i></i>
+                <button class="copy" type="button" data-copy="commands">
+                  <span data-l="en" data-idle="Copy" data-done="Copied">Copy</span><span data-l="zh" data-idle="复制" data-done="已复制">复制</span>
+                </button>
+              </div>
+              <pre id="commands"><code><span class="p">$ </span>git clone https://github.com/DestinyJazz/langfAIx.git
+<span class="p">$ </span>cd langfAIx
+<span class="p">$ </span>cp .env.example .env
+<span class="dim"># set the three secrets in .env, then:</span>
+<span class="p">$ </span>docker compose up -d --build
+<span class="p">$ </span>curl http://localhost/api/healthz</code></pre>
+            </div>
+          </div>
+
+          <p class="after" data-l="en">
+            This standalone stack is new and has not been run on a clean machine yet. The setup that is in daily use sits behind a Traefik reverse proxy
+            on an internal network, with certificates from Let's Encrypt and no port open to the internet. Both are described in the
+            <a href="https://github.com/DestinyJazz/langfAIx/blob/main/docs/DEPLOY.md">deployment guide</a>; the steps above are in the
+            <a href="https://github.com/DestinyJazz/langfAIx#quick-start">README</a>, and how the parts fit together is in the
+            <a href="https://github.com/DestinyJazz/langfAIx/blob/main/docs/ARCHITECTURE.md">architecture notes</a>.
+          </p>
+          <p class="after" data-l="zh">
+            这一套独立的部署是新写的，还没有在干净的机器上跑过。每天在用的那一套放在内网，前面是 Traefik 反向代理 (reverse proxy)，证书来自 Let's
+            Encrypt，不对公网开放任何端口。两种做法都写在<a href="https://github.com/DestinyJazz/langfAIx/blob/main/docs/DEPLOY.md">部署说明</a>里；上面的步骤在
+            <a href="https://github.com/DestinyJazz/langfAIx#快速开始">README</a> 里；各部分怎么配合见<a
+              href="https://github.com/DestinyJazz/langfAIx/blob/main/docs/ARCHITECTURE.md"
+              >架构说明</a
+            >。部署说明和架构说明是英文的。
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= Teams and privacy ================= -->
+      <section class="soft">
+        <div class="wrap two">
+          <div id="teams" class="panel glow c-purple reveal">
+            <div class="tile"><svg class="i"><use href="#i-team" /></svg></div>
+            <h2><span data-l="en">For teams and companies</span><span data-l="zh">给团队和公司</span></h2>
+            <p data-l="en">
+              langfAIx is free software under the AGPL-3.0. You may use it, change it and host it yourself. If you run a changed version as a network
+              service, the license asks you to offer your changes to its users.
+            </p>
+            <p data-l="zh">
+              langfAIx 是自由软件，采用 AGPL-3.0。你可以使用、修改、自己架设。如果你把改过的版本作为网络服务提供给别人用，许可证要求你向那些使用者提供你的修改。
+            </p>
+            <p data-l="en">For organisations that cannot use AGPL software, or that want help, there is a commercial option:</p>
+            <p data-l="zh">不能使用 AGPL 软件的组织，或者需要协助的团队，可以走商业的路：</p>
+            <ul class="ticks">
+              <li>
+                <svg class="i"><use href="#i-check" /></svg>
+                <span data-l="en">help with deployment on your own network, including self-hosted models</span>
+                <span data-l="zh">协助在你们自己的网络里部署，包括接自己架的模型</span>
+              </li>
+              <li>
+                <svg class="i"><use href="#i-check" /></svg><span data-l="en">a support contract</span><span data-l="zh">支持合同</span>
+              </li>
+              <li>
+                <svg class="i"><use href="#i-check" /></svg><span data-l="en">a commercial license</span
+                ><span data-l="zh">商业授权 (commercial license)</span>
+              </li>
+            </ul>
+            <p data-l="en">
+              Features for larger organisations, such as single sign-on, audit export and a review workflow for the glossary, are planned and not built
+              yet. Say which one you need.
+            </p>
+            <p data-l="zh">给大一些的组织用的功能，例如单点登录 (SSO)、审计导出、术语表的审核流程，在计划里，还没有做。告诉我们你需要哪一样。</p>
+            <a class="button primary" href="https://github.com/DestinyJazz/langfAIx/issues">
+              <span data-l="en">Get in touch on GitHub</span><span data-l="zh">在 GitHub 上联系</span>
+              <svg class="i"><use href="#i-arrow" /></svg>
+            </a>
+          </div>
+
+          <div id="privacy" class="panel c-green reveal">
+            <div class="tile"><svg class="i"><use href="#i-shield" /></svg></div>
+            <h2><span data-l="en">Privacy</span><span data-l="zh">隐私</span></h2>
+            <p data-l="en">The software runs on your server, so what it does with text is in your hands:</p>
+            <p data-l="zh">软件跑在你的服务器上，所以文字怎么处理由你做主：</p>
+            <ul class="ticks">
+              <li>
+                <svg class="i"><use href="#i-check" /></svg>
+                <span data-l="en">AI never runs by itself. Automatic checks use only the rule engine on your server.</span>
+                <span data-l="zh">AI 永远不会自己运行。自动的检查只用你服务器上的规则引擎。</span>
+              </li>
+              <li>
+                <svg class="i"><use href="#i-check" /></svg>
+                <span data-l="en">Only the sentence or selection the user picked is sent to the model.</span>
+                <span data-l="zh">送给模型的只有使用者点的那一句或选中的那一段。</span>
+              </li>
+              <li>
+                <svg class="i"><use href="#i-check" /></svg>
+                <span data-l="en">The backend does not store checked text, and does not store or log users' keys.</span>
+                <span data-l="zh">后台不保存检查过的文字，不保存也不记录使用者的 key。</span>
+              </li>
+              <li>
+                <svg class="i"><use href="#i-check" /></svg>
+                <span data-l="en"
+                  >Fields that look like passwords, names, email, addresses, card numbers or search, and code editors, are skipped. These are rules
+                  that lean towards not checking, not a guarantee.</span
+                >
+                <span data-l="zh"
+                  >看起来像密码、姓名、邮箱、地址、卡号、搜索的输入框，以及写代码的地方，会被跳过。这是一组"拿不准就不检查"的规则，不是保证。</span
+                >
+              </li>
+            </ul>
+            <p data-l="en">
+              This describes the code as published. Whoever runs a server can change it, so ask the person who runs yours. The details are in the
+              <a href="https://github.com/DestinyJazz/langfAIx/blob/main/SECURITY.md">security notes</a>.
+            </p>
+            <p data-l="zh">
+              以上说的是公开的这份代码。架服务器的人可以改它，所以请问你那台服务器的管理员。细节见<a
+                href="https://github.com/DestinyJazz/langfAIx/blob/main/SECURITY.md"
+                >安全说明</a
+              >（英文）。
+            </p>
+            <p data-l="en"><strong>This page</strong> sets no cookies and loads nothing from other servers. Your language choice is kept in your own browser.</p>
+            <p data-l="zh"><strong>这个网页</strong>不设 cookie，不从别的服务器加载任何东西。你选的语言只记在你自己的浏览器里。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= Closing band ================= -->
+      <div class="band">
+        <div class="wrap">
+          <h2><span data-l="en">Read the code. Run it on your own server.</span><span data-l="zh">代码都在这里。架在你自己的服务器上。</span></h2>
+          <a class="button" href="https://github.com/DestinyJazz/langfAIx">
+            <svg class="i"><use href="#i-code" /></svg>
+            <span data-l="en">langfAIx on GitHub</span><span data-l="zh">GitHub 上的 langfAIx</span>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <p data-l="en">Copyright (C) 2026 DestinyJazz. langfAIx is free software under the GNU Affero General Public License v3.0.</p>
+        <p data-l="zh">Copyright (C) 2026 DestinyJazz。langfAIx 是自由软件，采用 GNU Affero General Public License v3.0。</p>
+        <p data-l="en">
+          Built on <a href="https://languagetool.org/">LanguageTool</a> and <a href="https://github.com/BerriAI/litellm">LiteLLM</a>, with thanks to
+          their authors and contributors. langfAIx is not affiliated with LanguageTool, Grammarly, Microsoft or OpenAI.
+        </p>
+        <p data-l="zh">
+          建立在 <a href="https://languagetool.org/">LanguageTool</a> 和 <a href="https://github.com/BerriAI/litellm">LiteLLM</a>
+          之上，感谢它们的作者和贡献者。langfAIx 和 LanguageTool、Grammarly、Microsoft、OpenAI 没有关联。
+        </p>
+        <noscript><p>The Chinese version of this page needs JavaScript. 中文版需要启用 JavaScript。</p></noscript>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // ---- The headline: stream it in, show the mistake, fix it ----
+        //
+        // Each entry is [text, class, corrected text]. The entry with the class "typo" arrives
+        // misspelled and is replaced by its corrected text at the end. "br" is a line break
+        // that only counts on narrow screens.
+        var HEADLINES = {
+          en: [["Langauge", "typo", "Language"], [" "], ["fix", "mark-fix"], [" "], ["", "br"], ["with "], ["AI", "mark-ai"], ["."]],
+          zh: [["用 "], ["AI", "mark-ai"], [" "], ["", "br"], ["改好", "mark-fix"], ["你写的文"], ["子", "typo", "字"], ["。"]],
+        };
+        var played = {};
+
+        function wait(ms) {
+          return new Promise(function (done) {
+            setTimeout(done, ms);
+          });
+        }
+
+        async function stream(lang) {
+          var headline = document.querySelector('h1[data-l="' + lang + '"]');
+          if (!headline || played[lang] || still) return;
+          played[lang] = true;
+
+          var live = headline.querySelector(".live");
+          var caret = document.createElement("span");
+          caret.className = "caret";
+          live.textContent = "";
+          live.appendChild(caret);
+          headline.classList.add("streaming");
+
+          var typo = null;
+          var parts = HEADLINES[lang];
+          for (var p = 0; p < parts.length; p++) {
+            if (parts[p][1] === "br") {
+              // where the headline breaks on a phone; the finished text in the page has the same one
+              var lineBreak = document.createElement("br");
+              lineBreak.className = "narrow";
+              live.insertBefore(lineBreak, caret);
+              continue;
+            }
+            var part = document.createElement("span");
+            if (parts[p][1]) part.className = parts[p][1];
+            if (parts[p][1] === "typo") typo = { element: part, right: parts[p][2] };
+            live.insertBefore(part, caret);
+
+            // A few characters at a time, at an uneven pace, the way tokens arrive.
+            var text = parts[p][0];
+            var at = 0;
+            while (at < text.length) {
+              var size = lang === "zh" ? 1 : 2 + Math.floor(Math.random() * 3);
+              var piece = document.createElement("span");
+              piece.className = "tok";
+              piece.textContent = text.slice(at, at + size);
+              part.appendChild(piece);
+              at += size;
+              await wait(50 + Math.random() * 80);
+            }
+          }
+
+          await wait(450);
+          typo.element.textContent = typo.element.textContent; // one piece of text, so the red line is unbroken
+          typo.element.classList.add("wrong"); // the red line: a mistake was found
+          await wait(1100);
+          typo.element.textContent = typo.right; // and it is fixed
+          typo.element.classList.remove("wrong");
+          typo.element.classList.add("fixed");
+          await wait(550);
+          headline.classList.remove("streaming");
+          headline.classList.add("done"); // the two marks light up, the caret fades
+        }
+
+        function play() {
+          stream(root.getAttribute("data-lang") === "zh" ? "zh" : "en").catch(function () {
+            root.classList.remove("will-stream"); // anything went wrong: just show the headline
+          });
+        }
+
+        play();
+        window.addEventListener("langfaix-lang", play);
+
+        // ---- Things slide up as they scroll into view ----
+        var hidden = document.querySelectorAll(".reveal");
+        if ("IntersectionObserver" in window && !still) {
+          var watcher = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add("in");
+                watcher.unobserve(entry.target);
+              });
+            },
+            { rootMargin: "0px 0px -8% 0px" },
+          );
+          hidden.forEach(function (element) {
+            watcher.observe(element);
+          });
+        } else {
+          hidden.forEach(function (element) {
+            element.classList.add("in");
+          });
+        }
+
+        // ---- The copy button of the terminal ----
+        document.addEventListener("click", function (event) {
+          var button = event.target.closest ? event.target.closest("[data-copy]") : null;
+          if (!button) return;
+          // The commands only: no prompt signs, no comment line.
+          var lines = document.getElementById(button.getAttribute("data-copy")).textContent.split("\n");
+          var commands = lines
+            .filter(function (line) {
+              return line.indexOf("$ ") === 0;
+            })
+            .map(function (line) {
+              return line.slice(2);
+            })
+            .join("\n");
+
+          function copied() {
+            button.querySelectorAll("[data-done]").forEach(function (label) {
+              label.textContent = label.getAttribute("data-done");
+            });
+            setTimeout(function () {
+              button.querySelectorAll("[data-idle]").forEach(function (label) {
+                label.textContent = label.getAttribute("data-idle");
+              });
+            }, 1600);
+          }
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(commands).then(copied, function () {});
+          } else {
+            var box = document.createElement("textarea");
+            box.value = commands;
+            document.body.appendChild(box);
+            box.select();
+            try {
+              if (document.execCommand("copy")) copied();
+            } catch (error) {}
+            box.remove();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

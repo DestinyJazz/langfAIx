@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install -r backend/requirements-dev.txt
+      - run: python -m pytest
+        working-directory: backend
+
+  javascript:
+    name: Extension and add-in tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm test
+        working-directory: browser-extension
+      - run: npm test
+        working-directory: word-addin
+
+  stack:
+    name: Standalone stack smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write a throwaway .env
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=ci0password"
+            echo "LITELLM_MASTER_KEY=sk-ci-master-key"
+            echo "LITELLM_SALT_KEY=sk-ci-salt-key"
+          } > .env
+      - name: Start the stack
+        run: docker compose up -d --build
+      - name: Wait for the backend
+        run: |
+          for i in $(seq 1 72); do
+            if curl -fsS http://localhost/api/healthz; then exit 0; fi
+            sleep 5
+          done
+          docker compose ps
+          docker compose logs --tail 100
+          exit 1
+      - name: A rule check through the whole stack
+        run: |
+          curl -fsS -X POST http://localhost/api/check \
+            -H "Content-Type: application/json" \
+            -d '{"text": "This are a test sentense."}' | tee check.json
+          grep -q '"rule_id"' check.json
+      - name: The glossary admin page is served
+        run: curl -fsS http://localhost/api/admin/ | grep -q "langfAIx"
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

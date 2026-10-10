@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Manifest of the Word add-in: tells Word the add-in's name, where its pages are and
+  which button goes on the ribbon.
+
+  A template, not the final file. deploy/pack-word-addin.ps1 replaces the two markers
+  and writes deploy/build/langfaix-word-manifest.xml, which is the one Word reads.
+    {{ORIGIN}}     the server's origin, e.g. https://your-server.example.com
+    {{ADDIN_URL}}  where the add-in's pages are, e.g. https://your-server.example.com/api/addin
+  The server address belongs to a deployment, so it is not in this file.
+
+  The order of the elements is fixed by Office. Out of order, Word rejects the file
+  without saying why.
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <!-- The add-in's identity. Never change it: Word would see a different add-in. -->
+  <Id>c7a609f7-d87f-4786-b156-c125c9ca3876</Id>
+  <Version>1.1.0.0</Version>
+  <ProviderName>langfAIx</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="langfAIx" />
+  <Description DefaultValue="Grammar checking with a self-hosted LanguageTool, plus on-demand AI rewriting that shows what each request costs." />
+  <IconUrl DefaultValue="{{ADDIN_URL}}/word-addin/icons/icon32.png" />
+  <HighResolutionIconUrl DefaultValue="{{ADDIN_URL}}/word-addin/icons/icon64.png" />
+  <SupportUrl DefaultValue="{{ADDIN_URL}}/word-addin/taskpane.html" />
+
+  <!-- Sites the add-in's pages may open: our own server only. -->
+  <AppDomains>
+    <AppDomain>{{ORIGIN}}</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+
+  <!-- Squiggles (annotations) need WordApi 1.7; in an older Word the add-in does not appear.
+       WordApiDesktop 1.2 (the pages on screen) cannot be required here (a Microsoft rule); the page checks at run time. -->
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="WordApi" MinVersion="1.7" />
+    </Sets>
+  </Requirements>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="{{ADDIN_URL}}/word-addin/taskpane.html" />
+  </DefaultSettings>
+
+  <!-- Read-write: the text is read for checking and suggestions are written back. -->
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <!-- The ribbon button: a group on the Home tab with one button that opens the task pane. -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Langfaix.Group">
+                <Label resid="Group.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16" />
+                  <bt:Image size="32" resid="Icon.32" />
+                  <bt:Image size="80" resid="Icon.80" />
+                </Icon>
+                <Control xsi:type="Button" id="Langfaix.Open">
+                  <Label resid="Open.Label" />
+                  <Supertip>
+                    <Title resid="Open.Label" />
+                    <Description resid="Open.Tip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16" />
+                    <bt:Image size="32" resid="Icon.32" />
+                    <bt:Image size="80" resid="Icon.80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Langfaix.Pane</TaskpaneId>
+                    <SourceLocation resid="Pane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <!-- The images, URLs and strings referenced by resid above are registered here. -->
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="{{ADDIN_URL}}/word-addin/icons/icon16.png" />
+        <bt:Image id="Icon.32" DefaultValue="{{ADDIN_URL}}/word-addin/icons/icon32.png" />
+        <bt:Image id="Icon.80" DefaultValue="{{ADDIN_URL}}/word-addin/icons/icon80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Pane.Url" DefaultValue="{{ADDIN_URL}}/word-addin/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="Group.Label" DefaultValue="langfAIx" />
+        <bt:String id="Open.Label" DefaultValue="Check text" />
+        <!-- The next three are the texts of the squiggle popup. Word only allows fixed strings registered here, so they are English only and cannot carry a per-issue explanation. -->
+        <bt:String id="Popup.Title" DefaultValue="Suggestion" />
+        <bt:String id="Popup.Subtitle" DefaultValue="See the langfAIx pane for details" />
+        <bt:String id="Popup.Brand" DefaultValue="langfAIx" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="Open.Tip" DefaultValue="Open the langfAIx pane to check spelling, grammar and terminology." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

@@ -1,0 +1,130 @@
+# langfAIx, standalone: everything in one stack, with Caddy as the entry point.
+#
+#   cp .env.example .env      (then edit .env)
+#   docker compose up -d --build
+#
+# With the defaults in .env.example this serves plain HTTP on this machine:
+#   http://localhost/api/healthz     the backend
+#   http://localhost/api/admin/      the glossary admin page
+#   http://localhost:4000/ui         the LiteLLM admin UI
+# That is enough to try the browser extension. The Word add-in needs HTTPS with a
+# certificate the user's computer trusts; see docs/DEPLOY.md.
+#
+# If a reverse proxy already owns ports 80 and 443 on your server, use
+# deploy/examples/behind-traefik/ instead.
+#
+# STATUS: this file has not been run on a clean machine yet. The stack that is known to
+# work is the one in deploy/examples/behind-traefik/, which has the same services.
+
+services:
+  # The rule-based grammar checker (not AI). Pinned version, never latest.
+  languagetool:
+    image: erikvl87/languagetool:6.8
+    restart: unless-stopped
+    environment:
+      # Java heap, initial and maximum. Too small a maximum makes long texts slow or crashes the checker.
+      - Java_Xms=512m
+      - Java_Xmx=2g
+    # No ports on purpose: only containers in this stack can reach it.
+
+  # Database: LiteLLM's virtual keys and spend records, and (in its own database) the glossary.
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - langfaix-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d litellm -U litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # LLM gateway: holds the only provider key, issues virtual keys, records the cost of every call.
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.103.3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?set LITELLM_SALT_KEY in .env}
+      # The only provider key. When adding a model in the LiteLLM admin UI, enter
+      # os.environ/OPENAI_API_KEY as the API key: the real key then never passes through a
+      # browser and is not stored in the database.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Models are stored in the database and added in the admin UI; no config file to mount.
+      STORE_MODEL_IN_DB: "True"
+      # LiteLLM's public address, needed for the redirect after sign-in.
+      PROXY_BASE_URL: ${LITELLM_PUBLIC_URL:-http://localhost:4000}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # The langfAIx backend (FastAPI), built from this repository.
+  backend:
+    build: .
+    image: langfaix-backend:local
+    restart: unless-stopped
+    depends_on:
+      languagetool:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      LANGUAGETOOL_URL: http://languagetool:8010
+      # The service is published under /api (see deploy/Caddyfile).
+      ROOT_PATH: /api
+      LITELLM_URL: http://litellm:4000
+      # The model name: a fixed alias. In the LiteLLM admin UI, give the model exactly this
+      # Public Model Name and point it at any real model; switching models then needs no change here.
+      AI_MODEL: ${AI_MODEL:-langfAIx-model-1}
+      # What your documents are about, and extra style preferences, for the AI prompt (empty
+      # keeps the built-in default). The rules themselves live in backend/app/prompt.py.
+      AI_PROMPT_DOMAIN: ${AI_PROMPT_DOMAIN:-}
+      AI_PROMPT_EXTRA: ${AI_PROMPT_EXTRA:-}
+      # The backend's own LiteLLM admin key, used to identify callers and to read model prices.
+      LITELLM_ADMIN_KEY: ${LITELLM_MASTER_KEY}
+      # The glossary: the same Postgres, a database of its own, created at startup if missing.
+      DATABASE_URL: postgresql+psycopg://litellm:${POSTGRES_PASSWORD}@postgres:5432/langfaix
+      # The initial glossary admins, comma separated: aliases of LiteLLM virtual keys, not secrets.
+      GLOSSARY_ADMINS: ${GLOSSARY_ADMINS:-}
+      # What the glossary is about (empty keeps the defaults: Chinese to English, the usual categories).
+      GLOSSARY_SOURCE_LANGUAGE: ${GLOSSARY_SOURCE_LANGUAGE:-}
+      GLOSSARY_SOURCE_SCRIPT: ${GLOSSARY_SOURCE_SCRIPT:-}
+      GLOSSARY_CATEGORIES: ${GLOSSARY_CATEGORIES:-}
+
+  # Web server: the stack's single entry point.
+  caddy:
+    image: caddy:2.11.6-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - litellm
+    ports:
+      - "80:80"
+      - "443:443"
+      - "4000:4000"
+    environment:
+      LANGFAIX_SITE: ${LANGFAIX_SITE:-http://:80}
+      LITELLM_SITE: ${LITELLM_SITE:-http://:4000}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and Caddy's state survive recreating the container.
+      - langfaix-caddy-data:/data
+      - langfaix-caddy-config:/config
+
+volumes:
+  langfaix-pgdata:
+  langfaix-caddy-data:
+  langfaix-caddy-config:

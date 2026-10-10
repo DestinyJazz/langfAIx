@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>langfAIx</title>
+    <link rel="stylesheet" href="../ui.css" />
+    <style>
+      body {
+        width: 440px;
+        /* Chinese fonts are listed too: half of a lookup result is Chinese */
+        font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      header a {
+        font-size: 12px;
+        color: var(--accent);
+        cursor: pointer;
+      }
+      /* The two tabs at the top: lookup and quick check */
+      .tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .tab {
+        padding: 5px 12px;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .tab.current {
+        background: var(--bg-soft);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px var(--border);
+      }
+
+      /* ---------- Lookup ---------- */
+      #results {
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+        max-height: 380px;
+        overflow-y: auto;
+      }
+      .result {
+        padding: 9px 2px;
+        border-top: 1px solid var(--border);
+      }
+      .result:first-child {
+        border-top: 0;
+      }
+      .pair {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 10px;
+      }
+      /* Chinese and English are a button each; click to copy. Styled as plain text, clickable look on hover */
+      .copy {
+        padding: 1px 5px;
+        margin-left: -5px;
+        border-color: transparent;
+        background: none;
+        text-align: left;
+        overflow-wrap: anywhere;
+      }
+      .copy:hover {
+        border-color: var(--border);
+        background: var(--bg-soft);
+      }
+      .copy.en {
+        font-weight: 600;
+      }
+      .copy.copied {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+      .meta {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .meta .chip {
+        padding: 0 7px;
+        margin-right: 6px;
+        border-radius: 9px;
+        background: var(--bg-soft);
+        box-shadow: inset 0 0 0 1px var(--border);
+      }
+      /* Forms not to use: red, struck through */
+      .wrong s {
+        margin-left: 6px;
+        color: var(--error);
+      }
+      .notice {
+        margin: 0 0 10px;
+        padding: 7px 10px;
+        border: 1px solid #d4a72c66;
+        border-radius: 6px;
+        background: #fff8c5;
+        font-size: 12px;
+      }
+
+      /* ---------- Quick check ---------- */
+      #preview {
+        margin-top: 12px;
+        padding: 9px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg-soft);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      #detail {
+        margin-top: 10px;
+        padding: 9px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      #detail .message {
+        margin: 0 0 8px;
+      }
+      #detail .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      #detail .rule {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav class="tabs">
+        <button type="button" id="tab-lookup" class="tab current" data-pane="lookup">Glossary</button>
+        <button type="button" id="tab-check" class="tab" data-pane="check">Quick check</button>
+      </nav>
+      <a id="openOptions">Options</a>
+    </header>
+
+    <!-- Lookup: Chinese or English in, both directions -->
+    <section id="pane-lookup">
+      <p id="glossary-off" class="notice" hidden>
+        The team glossary is switched off in Options, so it is not applied when your text is checked. Looking up terms here still works.
+      </p>
+      <input id="term" type="text" placeholder="Type a term in Chinese or English" autocomplete="off" spellcheck="false" />
+      <div id="lookup-status" class="status" role="status"></div>
+      <ul id="results"></ul>
+      <p class="hint"><a id="openGlossary" target="_blank" hidden>Open the full glossary</a></p>
+    </section>
+
+    <!-- Quick check: paste text here instead of going to a page -->
+    <section id="pane-check" hidden>
+      <textarea id="text" rows="5" placeholder="Type or paste text here, then press Check (or Ctrl+Enter)."></textarea>
+
+      <div class="row">
+        <button id="check" class="primary">Check</button>
+        <span class="hint" style="margin: 0">Rule-based check. Free, no AI.</span>
+      </div>
+
+      <div id="status" class="status" role="status"></div>
+
+      <!-- The checked text; flagged parts have a squiggle and can be clicked -->
+      <div id="preview" hidden></div>
+
+      <!-- Explanation and suggestions of the clicked squiggle -->
+      <div id="detail" hidden>
+        <p class="message"></p>
+        <div class="suggestions"></div>
+        <p class="rule"></p>
+      </div>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

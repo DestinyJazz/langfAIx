@@ -1,0 +1,15 @@
+# Python virtual environments and caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node.js dependencies and the screenshots of the browser tests
+node_modules/
+e2e/shots/
+
+# Output of the pack scripts. It contains the address of a real server.
+deploy/build/
+
+# Settings of the standalone stack. It holds secrets.
+.env
