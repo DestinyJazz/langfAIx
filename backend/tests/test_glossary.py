@@ -435,18 +435,46 @@ def test_lookup_puts_exact_matches_first_and_respects_the_limit():
 # ---------- A large glossary ----------
 
 
-def test_a_large_glossary_is_still_fast():
-    # 5,000 rows, each with Chinese and one wrong form. Checking 20,000 characters should take tens of milliseconds.
-    rows = [{"en": f"Zyphor Unit{number}", "zh": f"单元{number}号", "variants": [f"Zyfor Unit{number}"]} for number in range(5000)]
+def time_a_check(rows: list[dict], text: str) -> tuple[float, list]:
+    """Seconds one check of the text takes, and what it found. The best of three runs, so
+    that a machine busy with something else does not decide the result."""
     book = glossary(*rows)
+    best, found = float("inf"), []
+    for _ in range(3):
+        started = time.perf_counter()
+        found = book.filter_matches(text, [])
+        best = min(best, time.perf_counter() - started)
+    return best, found
+
+
+def test_the_time_of_a_check_does_not_grow_with_the_glossary():
+    # Terms that begin with different words, as in a real glossary. The index by first word
+    # leads straight to the few candidates, so 5,000 rows cost about the same as 50 (a few
+    # milliseconds for 20,000 characters on a laptop).
+    rows = [{"en": f"Unit{number} Zyphor", "zh": f"单元{number}号", "variants": [f"Unit{number} Zyfor"]} for number in range(5000)]
+    text = ("Open the Unit42 Zyphor page, not the Unit7 Zyfor page, and check the trafic rule. " * 250)[:20000]
+
+    small, _ = time_a_check(rows[:50], text)
+    large, found = time_a_check(rows, text)
+
+    assert len(found) == text.count("Unit7 Zyfor")
+    # The two are compared with each other, not with a clock: a fixed time limit fails on a
+    # slow machine. A check that looked at every term would be about a hundred times slower here.
+    assert large < small * 20 + 0.05, f"50 rows took {small:.3f} seconds, 5,000 rows took {large:.3f}"
+
+
+def test_many_terms_that_begin_with_the_same_word_are_slower_but_bounded():
+    # The worst case for the index: all 5,000 terms begin with the same word, so every
+    # occurrence of that word in the text is compared with all of them. Time then grows with
+    # the number of such terms: about 0.8 seconds here on a laptop. The limit is generous on
+    # purpose. It is there to catch a change that makes this take minutes, not to measure the machine.
+    rows = [{"en": f"Zyphor Unit{number}", "zh": f"单元{number}号", "variants": [f"Zyfor Unit{number}"]} for number in range(5000)]
     text = ("Open the Zyphor Unit42 page, not the Zyfor Unit7 page, and check the trafic rule. " * 250)[:20000]
 
-    started = time.perf_counter()
-    found = book.filter_matches(text, [])
-    elapsed = time.perf_counter() - started
+    elapsed, found = time_a_check(rows, text)
 
     assert len(found) == text.count("Zyfor Unit7")
-    assert elapsed < 1.0, f"checking took {elapsed:.2f} seconds"
+    assert elapsed < 15.0, f"checking took {elapsed:.2f} seconds"
 
 # ---------- A glossary for another language, or for none ----------
 
