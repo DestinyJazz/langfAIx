@@ -16,15 +16,20 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="icon.png" />
 
-    <!-- Vercel Web Analytics -->
+    <!--
+      Visit counts for the project's own site, by Vercel Web Analytics. The script exists only
+      on Vercel: anywhere else this address is a 404 and nothing happens. If you host a copy of
+      this page somewhere else, delete these three lines and the "This page" paragraph about
+      analytics in the Privacy section.
+    -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
 
     <!--
-      The intro page of langfAIx. One static file: no build step, no cookies, nothing loaded
-      from other servers. English and Chinese sit side by side in the markup, as elements
+      The intro page of langfAIx. One static file: no build step, no cookies, no fonts or
+      libraries from other servers. English and Chinese sit side by side in the markup, as elements
       with data-l="en" or data-l="zh"; the script below shows one of the two.
     -->
     <script>
@@ -1963,8 +1968,13 @@
                 >安全说明</a
               >（英文）。
             </p>
-            <p data-l="en"><strong>This page</strong> sets no cookies and loads nothing from other servers. Your language choice is kept in your own browser.</p>
-            <p data-l="zh"><strong>这个网页</strong>不设 cookie，不从别的服务器加载任何东西。你选的语言只记在你自己的浏览器里。</p>
+            <p data-l="en">
+              <strong>This site</strong> counts visits with Vercel Web Analytics: which pages are viewed, from which country, with which browser. It sets no
+              cookies and does not identify you. Your language choice is kept in your own browser.
+            </p>
+            <p data-l="zh">
+              <strong>本站</strong>用 Vercel Web Analytics 统计访问次数：看了哪一页、来自哪个国家、用什么浏览器。不设 cookie，也不识别你是谁。你选的语言只记在你自己的浏览器里。
+            </p>
           </div>
         </div>
       </section>
